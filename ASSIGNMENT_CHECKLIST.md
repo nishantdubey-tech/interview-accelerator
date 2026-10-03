@@ -52,11 +52,11 @@ The implementation rows below are a code review checklist, not all independent l
 
 | Deliverable | Status | Evidence |
 |---|---|---|
-| Live deployed application | [LIVE CHECKED 2026-10-03] | [Open Forma](https://interview-accelerator-44ui.onrender.com); `/api/health` reported Gemini configured and demo mode off |
+| Live deployed application | [LIVE; LLM CREDENTIAL NEEDS REPLACEMENT] | [Open Forma](https://interview-accelerator-44ui.onrender.com); health only confirms key presence; live synthetic Gemini request failed, so replace the Render secret and recheck |
 | Public GitHub repository | [PUBLIC] | [nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator) showed the GitHub Public badge |
 | README with architecture, AI, voice, adaptation, evaluation, and technical choices | [INCLUDED] | `README.md` |
-| Demo video showing end-to-end journey | [INCLUDED] | `demo/forma-demo.mp4` |
+| Demo video showing end-to-end journey | [PENDING RECORDING] | `DEMO_SCRIPT.md` contains the recording walkthrough; no video file is currently included |
 | Deterministic automated tests | [6 TEST CASES] | `python3 -m unittest discover -s tests`; covers credential masking, health/extraction, Job Fit math, adaptive flow/levels/report, transcription fallback, and invalid session |
-| Real LLM integration | [LIVE CHECKED EARLIER] | On 2026-10-03, live synthetic `POST /api/analyze` returned HTTP 200 and six fit dimensions. Re-run before final submission because provider credentials/quota can change. |
+| Real LLM integration | [BLOCKED: REPLACE SERVER KEY] | On 2026-10-04, health reported key presence but a synthetic Gemini request failed. Replace the key in Render, then verify analysis, adaptive follow-ups, and report before submission. |
 
 The app's built-in sample profiles are synthetic. The optional live integration script is separate from unit tests because it sends prompts to the configured provider and can consume quota. A real spoken-answer test also requires a supported browser and microphone permission.

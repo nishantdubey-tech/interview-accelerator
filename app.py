@@ -6,12 +6,11 @@ import json
 import logging
 import os
 import re
-import traceback
 import uuid
 from typing import Any, List, Optional
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile, Request
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -59,17 +58,18 @@ def _json_object(raw: str) -> dict[str, Any]:
         raise ValueError("Expected a JSON dictionary object")
     return data
 
-async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> dict[str, Any]:
+async def llm_json(system: str, prompt: str) -> dict[str, Any]:
     provider = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
     demo_mode = os.getenv("DEMO_MODE", "false").strip().lower() == "true"
     
     if provider == "gemini":
-        key = user_key or os.getenv("GEMINI_API_KEY")
+        key = os.getenv("GEMINI_API_KEY")
         if not key:
-            logger.info("GEMINI_API_KEY not configured. Engaging structured fallback.")
-            fallback = _fallback_llm_json(prompt)
-            fallback["_provider_notice"] = "Running in dynamic evaluation mode"
-            return fallback
+            if demo_mode:
+                fallback = _fallback_llm_json(prompt)
+                fallback["_provider_notice"] = "DEMO_MODE fallback: provider key is not configured."
+                return fallback
+            raise RuntimeError("GEMINI_API_KEY is not configured.")
             
         configured_model = os.getenv("GEMINI_MODEL", "").strip()
         candidates = []
@@ -82,7 +82,7 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
         
         last_exception = None
         for model in model_list:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "system_instruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -94,12 +94,13 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
             try:
                 logger.info(f"Dispatching request to Gemini model: {model}")
                 async with httpx.AsyncClient(timeout=20) as client:
-                    response = await client.post(url, json=payload)
+                    response = await client.post(url, headers={"x-goog-api-key": key}, json=payload)
                     if response.status_code in (401, 403):
-                        logger.warning(f"Gemini API returned status {response.status_code} (Unauthorized/Forbidden). Engaging immediate dynamic fallback.")
-                        fallback = _fallback_llm_json(prompt)
-                        fallback["_provider_notice"] = f"AI fallback active: {response.status_code} Unauthorized"
-                        return fallback
+                        if demo_mode:
+                            fallback = _fallback_llm_json(prompt)
+                            fallback["_provider_notice"] = "DEMO_MODE fallback: provider rejected its credential."
+                            return fallback
+                        raise RuntimeError("Gemini rejected the credential. Check the API key and model access.")
                     if response.status_code in (404, 400, 429) and model != model_list[-1]:
                         logger.warning(f"Gemini model {model} returned status {response.status_code} ({response.text[:120]}). Falling back to next model...")
                         continue
@@ -108,25 +109,28 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
                 resp_json = response.json()
                 raw = resp_json["candidates"][0]["content"]["parts"][0]["text"]
                 return _json_object(raw)
+            except RuntimeError:
+                raise
             except Exception as e:
                 last_exception = e
-                logger.warning(f"Error attempting Gemini model {model}: {e}")
+                logger.warning("Gemini model %s failed (%s)", model, type(e).__name__)
                 if model == model_list[-1]:
-                    logger.info(f"Engaging resilient fallback after provider failure: {last_exception}")
-                    fallback = _fallback_llm_json(prompt)
-                    fallback["_provider_notice"] = f"AI fallback active: {str(last_exception)[:140]}"
-                    return fallback
-        fallback = _fallback_llm_json(prompt)
-        fallback["_provider_notice"] = "AI fallback active"
-        return fallback
+                    logger.error("All Gemini model attempts failed.")
+                    if demo_mode:
+                        fallback = _fallback_llm_json(prompt)
+                        fallback["_provider_notice"] = "DEMO_MODE fallback: Gemini could not complete the request."
+                        return fallback
+                    raise RuntimeError("Gemini could not complete the request. Check key, model access, quota, and connectivity.") from last_exception
+        raise RuntimeError("Gemini could not complete the request.")
 
     elif provider == "openai":
-        key = user_key or os.getenv("OPENAI_API_KEY")
+        key = os.getenv("OPENAI_API_KEY")
         if not key:
-            logger.info("OPENAI_API_KEY not configured. Engaging structured fallback.")
-            fallback = _fallback_llm_json(prompt)
-            fallback["_provider_notice"] = "Running in calibrated fallback mode (configure OPENAI_API_KEY for live AI)"
-            return fallback
+            if demo_mode:
+                fallback = _fallback_llm_json(prompt)
+                fallback["_provider_notice"] = "DEMO_MODE fallback: provider key is not configured."
+                return fallback
+            raise RuntimeError("OPENAI_API_KEY is not configured.")
         
         candidates = list(dict.fromkeys([os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "gpt-4o", "gpt-3.5-turbo"]))
         last_exception = None
@@ -148,26 +152,29 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
                         },
                     )
                     if response.status_code in (401, 403):
-                        logger.warning(f"OpenAI returned status {response.status_code} Unauthorized/Forbidden. Engaging immediate fallback.")
-                        fallback = _fallback_llm_json(prompt)
-                        fallback["_provider_notice"] = f"AI fallback active: {response.status_code} Unauthorized"
-                        return fallback
+                        if demo_mode:
+                            fallback = _fallback_llm_json(prompt)
+                            fallback["_provider_notice"] = "DEMO_MODE fallback: provider rejected its credential."
+                            return fallback
+                        raise RuntimeError("OpenAI rejected the credential. Check the API key and model access.")
                     if response.status_code in (404, 400, 429) and model != candidates[-1]:
                         continue
                     response.raise_for_status()
                 raw = response.json()["choices"][0]["message"]["content"]
                 return _json_object(raw)
+            except RuntimeError:
+                raise
             except Exception as e:
                 last_exception = e
-                logger.warning(f"Error attempting OpenAI model {model}: {e}")
+                logger.warning("OpenAI model %s failed (%s)", model, type(e).__name__)
                 if model == candidates[-1]:
-                    logger.info(f"Engaging resilient fallback after OpenAI provider failure: {last_exception}")
-                    fallback = _fallback_llm_json(prompt)
-                    fallback["_provider_notice"] = f"AI fallback active: {str(last_exception)[:140]}"
-                    return fallback
-        fallback = _fallback_llm_json(prompt)
-        fallback["_provider_notice"] = "AI fallback active"
-        return fallback
+                    logger.error("All OpenAI model attempts failed.")
+                    if demo_mode:
+                        fallback = _fallback_llm_json(prompt)
+                        fallback["_provider_notice"] = "DEMO_MODE fallback: OpenAI could not complete the request."
+                        return fallback
+                    raise RuntimeError("OpenAI could not complete the request. Check key, model access, quota, and connectivity.") from last_exception
+        raise RuntimeError("OpenAI could not complete the request.")
     else:
         if demo_mode:
             return _fallback_llm_json(prompt)
@@ -861,12 +868,13 @@ def _fallback_llm_json(prompt: str) -> dict[str, Any]:
         return _dynamic_analyze_from_text(jd_text, res_text)
 
 def fail(e: Exception):
-    traceback.print_exc()
-    message = str(e)
-    logger.error(f"Application error: {message}")
+    logger.error("AI provider request failed: %s", type(e).__name__)
     status = 503 if isinstance(e, (httpx.HTTPError, RuntimeError)) else 502
-    clean_msg = message[:260] if status == 503 and "API_KEY" in message else f"The AI service could not complete this request: {message[:180]}"
-    raise HTTPException(status_code=status, detail=clean_msg)
+    if isinstance(e, RuntimeError) and "API_KEY is not configured" in str(e):
+        detail = str(e)
+    else:
+        detail = "The live AI provider could not complete this request. Verify its credential, model access, quota, and try again."
+    raise HTTPException(status_code=status, detail=detail)
 
 @app.get("/api/health")
 async def health():
@@ -881,6 +889,7 @@ async def health():
         "provider": provider,
         "model": configured_model,
         "ai_configured": configured,
+        "credential_configured": configured,
         "demo_mode": demo_mode,
         "features": {
             "role_analysis": True,
@@ -936,7 +945,9 @@ async def transcribe(file: UploadFile = File(...)):
     if provider == "gemini":
         key = os.getenv("GEMINI_API_KEY")
         if not key:
-            return {"text": "I designed the architecture to handle asynchronous tasks and optimized database indexes to minimize query latency."}
+            if demo_mode:
+                return {"text": "Demo transcript: I designed the architecture to handle asynchronous tasks."}
+            raise HTTPException(503, "Speech transcription is not configured. Use browser speech recognition or type your answer.")
         
         b64_audio = base64.b64encode(data).decode("utf-8")
         mime = file.content_type or "audio/webm"
@@ -946,7 +957,7 @@ async def transcribe(file: UploadFile = File(...)):
         
         candidates = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
         for model in candidates:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "contents": [{
                     "parts": [
@@ -957,18 +968,20 @@ async def transcribe(file: UploadFile = File(...)):
             }
             try:
                 async with httpx.AsyncClient(timeout=60) as client:
-                    resp = await client.post(url, json=payload)
+                    resp = await client.post(url, headers={"x-goog-api-key": key}, json=payload)
                     if resp.status_code == 200:
                         txt = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
                         return {"text": txt}
             except Exception as e:
-                logger.warning(f"Gemini audio transcription attempt on {model} failed: {e}")
+                logger.warning("Gemini transcription model %s failed (%s)", model, type(e).__name__)
                 continue
                 
     elif provider == "openai":
         key = os.getenv("OPENAI_API_KEY")
         if not key:
-            return {"text": "I designed the architecture to handle asynchronous tasks and optimized database indexes to minimize query latency."}
+            if demo_mode:
+                return {"text": "Demo transcript: I designed the architecture to handle asynchronous tasks."}
+            raise HTTPException(503, "Speech transcription is not configured. Use browser speech recognition or type your answer.")
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 files = {"file": (file.filename or "recording.webm", data, file.content_type or "audio/webm")}
@@ -981,13 +994,14 @@ async def transcribe(file: UploadFile = File(...)):
                 if resp.status_code == 200:
                     return {"text": resp.json().get("text", "").strip()}
         except Exception as e:
-            logger.warning(f"OpenAI Whisper transcription failed: {e}")
+            logger.warning("OpenAI transcription failed (%s)", type(e).__name__)
 
-    return {"text": "I designed the architecture to handle asynchronous tasks and optimized database indexes to minimize query latency."}
+    if demo_mode:
+        return {"text": "Demo transcript: I designed the architecture to handle asynchronous tasks."}
+    raise HTTPException(503, "Speech transcription failed. Use browser speech recognition or type your answer.")
 
 @app.post("/api/analyze")
-async def analyze(body: AnalyzeIn, request: Request = None):
-    user_key = request.headers.get("x-gemini-key") or request.headers.get("x-openai-key") if request else None
+async def analyze(body: AnalyzeIn):
     system = (
         "You are an expert Lead AI Product Engineer and rigorous Interview Preparation Coach. "
         "Analyze the supplied Job Description and Resume strictly from evidence. "
@@ -1044,12 +1058,10 @@ RESUME:
 {body.resume}'''
 
     try:
-        kwargs = {"user_key": user_key} if user_key else {}
-        result = await llm_json(system, prompt, **kwargs)
+        result = await llm_json(system, prompt)
         dims = result.get("fit_dimensions")
         if not isinstance(dims, list) or len(dims) < 4:
-            result = _dynamic_analyze_from_text(body.jd, body.resume)
-            dims = result.get("fit_dimensions", [])
+            raise RuntimeError("The AI provider returned incomplete Job Fit analysis.")
         
         role = result.get("role")
         candidate = result.get("candidate")
@@ -1092,8 +1104,7 @@ RESUME:
         fail(e)
 
 @app.post("/api/interview/start")
-async def start(body: StartIn, request: Request = None):
-    user_key = request.headers.get("x-gemini-key") or request.headers.get("x-openai-key") if request else None
+async def start(body: StartIn):
     a = body.analysis
     if not isinstance(a.get("role"), dict) or not isinstance(a.get("candidate"), dict):
         raise HTTPException(422, "Please complete profile analysis first.")
@@ -1133,11 +1144,9 @@ Role Analysis: {json.dumps(a.get('role'))}
 Candidate Evidence: {json.dumps(a.get('candidate'))}'''
 
     try:
-        kwargs = {"user_key": user_key} if user_key else {}
         q = await llm_json(
             "You are an elite, discerning technical recruiter conducting a personalized screening interview. Ground questions in concrete candidate evidence.",
             prompt,
-            **kwargs
         )
     except Exception as e:
         fail(e)
@@ -1160,8 +1169,7 @@ Candidate Evidence: {json.dumps(a.get('candidate'))}'''
     }
 
 @app.post("/api/interview/answer")
-async def answer(body: AnswerIn, request: Request = None):
-    user_key = request.headers.get("x-gemini-key") or request.headers.get("x-openai-key") if request else None
+async def answer(body: AnswerIn):
     s = SESSIONS.get(body.session_id)
     if not s:
         raise HTTPException(404, "Interview session expired or not found. Please start a new interview.")
@@ -1228,11 +1236,9 @@ Accumulated Strengths: {json.dumps(s["strengths"][-5:])}
 Accumulated Weaknesses: {json.dumps(s["weaknesses"][-5:])}'''
 
     try:
-        kwargs = {"user_key": user_key} if user_key else {}
         result = await llm_json(
             "You are an adaptive expert interviewer and rigorous evaluator. The next question must directly quote or probe details from the candidate's last answer.",
             prompt,
-            **kwargs
         )
     except Exception as e:
         fail(e)
@@ -1281,8 +1287,7 @@ Accumulated Weaknesses: {json.dumps(s["weaknesses"][-5:])}'''
     }
 
 @app.post("/api/interview/report")
-async def report(body: ReportIn, request: Request = None):
-    user_key = request.headers.get("x-gemini-key") or request.headers.get("x-openai-key") if request else None
+async def report(body: ReportIn):
     s = SESSIONS.get(body.session_id)
     if not s:
         raise HTTPException(404, "Interview session expired or not found.")
@@ -1345,11 +1350,9 @@ Job Fit Score: {job_fit}%
 Role Target: {json.dumps(a.get("role"))}'''
 
     try:
-        kwargs = {"user_key": user_key} if user_key else {}
         out = await llm_json(
             "You are an executive interview coach synthesizing real interview evidence into an actionable preparation report.",
             prompt,
-            **kwargs
         )
     except Exception as e:
         fail(e)

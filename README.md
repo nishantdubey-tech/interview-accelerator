@@ -9,7 +9,7 @@ Forma is an AI-powered interview practice platform that analyzes a job descripti
 - **Live Deployed Application:** [https://interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com)
 - **GitHub Repository:** [https://github.com/nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator)
 - **Health Endpoint:** [https://interview-accelerator-44ui.onrender.com/api/health](https://interview-accelerator-44ui.onrender.com/api/health)
-- **Demo video:** [demo/forma-demo.mp4](demo/forma-demo.mp4) (end-to-end recording; see [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for the walkthrough)
+- **Demo video:** Pending recording. Follow [DEMO_SCRIPT.md](DEMO_SCRIPT.md) to capture the full journey.
 
 ---
 
@@ -193,7 +193,7 @@ This heuristic has not been validated as a psychometric instrument. Answer ratin
 | `DEMO_MODE` | No | `false` | Enables the app's explicit demo fallback behavior |
 | `FRONTEND_ORIGIN` | No | `http://localhost:8000` | Permitted CORS origin |
 
-The app also offers optional **Bring Your Own Key** mode. A key entered there is stored in that browser's `localStorage` and sent to this app's API over HTTPS in a request header; it is separate from the server-managed Render key. Use this only with a trusted deployment, do not share browser profiles, and clear the key in the app when finished. The live assignment deployment is configured with a server-side Gemini key, so evaluators should not need to enter one.
+Provider credentials are server-side only. Set the active provider key in Render's environment settings; never place a provider key in browser storage or paste one into the public repository. `/api/health` reports whether a key is configured, not whether it is valid or usable. A real provider request is the only confirmation that the LLM is working. Production mode returns a clear error if that request fails instead of presenting deterministic demo output as live AI.
 
 ---
 
@@ -245,7 +245,7 @@ The separate `test_e2e_live.py` script sends sample data through the configured 
 
 - Live application: [interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com)
 - Public source repository: [nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator)
-- Guided demo: [demo/forma-demo.mp4](demo/forma-demo.mp4)
+- Guided demo: pending recording; use [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 - Walkthrough script: [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 - Requirement map: [ASSIGNMENT_CHECKLIST.md](ASSIGNMENT_CHECKLIST.md)
 
@@ -253,7 +253,7 @@ Open the app, choose a sample profile or enter a job description and resume, run
 
 ## Live deployment status
 
-At the last live check on October 3, 2026, `/api/health` returned `status: ok`, `provider: gemini`, `ai_configured: true`, and `demo_mode: false`. A synthetic `/api/analyze` request also returned HTTP 200 with structured role analysis. Render's free instance may spin down after inactivity. To rotate the server key, update `GEMINI_API_KEY` in Render's Environment settings and save/redeploy; keep `LLM_PROVIDER=gemini`. The public Render service is already connected to this repository, and `render.yaml` documents the blueprint settings for a new service.
+On October 4, 2026, `/api/health` showed a Gemini credential is configured, but a synthetic live request failed at the provider. The health endpoint confirms presence only, not validity. Replace `GEMINI_API_KEY` in Render's Environment settings and save/redeploy; then run a fresh analysis and complete an interview/report to verify live LLM access. Render's free instance may spin down after inactivity. The public Render service is connected to this repository, and `render.yaml` documents settings for a new service.
 
 ## Evaluation methodology
 
