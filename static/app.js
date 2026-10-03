@@ -163,7 +163,21 @@ async function api(path, data) {
   if (!resp.ok) {
     throw new Error(json.detail || `Request failed with HTTP ${resp.status}`);
   }
+  if (json._provider_notice) showProviderNotice(json._provider_notice);
   return json;
+}
+
+function showProviderNotice(message) {
+  let notice = $('#providerFallbackNotice');
+  if (!notice) {
+    notice = document.createElement('div');
+    notice.id = 'providerFallbackNotice';
+    notice.setAttribute('role', 'status');
+    notice.style.cssText = 'margin:12px 22px 0;padding:10px 14px;border:1px solid #b7791f;border-radius:8px;background:#33260f;color:#ffe2a8;font-size:13px;line-height:1.45';
+    $('.main-content')?.prepend(notice);
+  }
+  notice.textContent = message;
+  notice.classList.remove('hidden');
 }
 
 // UI State & View Switcher

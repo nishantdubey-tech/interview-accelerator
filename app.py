@@ -58,18 +58,19 @@ def _json_object(raw: str) -> dict[str, Any]:
         raise ValueError("Expected a JSON dictionary object")
     return data
 
+def _offline_fallback(prompt: str, reason: str) -> dict[str, Any]:
+    """Keep the interview usable during provider outages, and label non-LLM output."""
+    result = _fallback_llm_json(prompt)
+    result["_provider_notice"] = f"Live AI unavailable ({reason}). Using the local adaptive fallback; this is not a live model response."
+    return result
+
 async def llm_json(system: str, prompt: str) -> dict[str, Any]:
     provider = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
-    demo_mode = os.getenv("DEMO_MODE", "false").strip().lower() == "true"
     
     if provider == "gemini":
         key = os.getenv("GEMINI_API_KEY")
         if not key:
-            if demo_mode:
-                fallback = _fallback_llm_json(prompt)
-                fallback["_provider_notice"] = "DEMO_MODE fallback: provider key is not configured."
-                return fallback
-            raise RuntimeError("GEMINI_API_KEY is not configured.")
+            return _offline_fallback(prompt, "Gemini key is not configured")
             
         configured_model = os.getenv("GEMINI_MODEL", "").strip()
         candidates = []
@@ -80,7 +81,6 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
         # Deduplicate
         model_list = list(dict.fromkeys(candidates))
         
-        last_exception = None
         for model in model_list:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
@@ -96,11 +96,8 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
                 async with httpx.AsyncClient(timeout=20) as client:
                     response = await client.post(url, headers={"x-goog-api-key": key}, json=payload)
                     if response.status_code in (401, 403):
-                        if demo_mode:
-                            fallback = _fallback_llm_json(prompt)
-                            fallback["_provider_notice"] = "DEMO_MODE fallback: provider rejected its credential."
-                            return fallback
-                        raise RuntimeError("Gemini rejected the credential. Check the API key and model access.")
+                        logger.warning("Gemini rejected the configured credential (HTTP %s)", response.status_code)
+                        return _offline_fallback(prompt, "Gemini rejected the configured credential")
                     if response.status_code in (404, 400, 429) and model != model_list[-1]:
                         logger.warning(f"Gemini model {model} returned status {response.status_code} ({response.text[:120]}). Falling back to next model...")
                         continue
@@ -109,31 +106,22 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
                 resp_json = response.json()
                 raw = resp_json["candidates"][0]["content"]["parts"][0]["text"]
                 return _json_object(raw)
-            except RuntimeError:
-                raise
+            except RuntimeError as e:
+                logger.warning("Gemini request failed (%s)", type(e).__name__)
+                return _offline_fallback(prompt, "Gemini request failed")
             except Exception as e:
-                last_exception = e
                 logger.warning("Gemini model %s failed (%s)", model, type(e).__name__)
                 if model == model_list[-1]:
                     logger.error("All Gemini model attempts failed.")
-                    if demo_mode:
-                        fallback = _fallback_llm_json(prompt)
-                        fallback["_provider_notice"] = "DEMO_MODE fallback: Gemini could not complete the request."
-                        return fallback
-                    raise RuntimeError("Gemini could not complete the request. Check key, model access, quota, and connectivity.") from last_exception
-        raise RuntimeError("Gemini could not complete the request.")
+                    return _offline_fallback(prompt, "Gemini could not complete the request")
+        return _offline_fallback(prompt, "Gemini could not complete the request")
 
     elif provider == "openai":
         key = os.getenv("OPENAI_API_KEY")
         if not key:
-            if demo_mode:
-                fallback = _fallback_llm_json(prompt)
-                fallback["_provider_notice"] = "DEMO_MODE fallback: provider key is not configured."
-                return fallback
-            raise RuntimeError("OPENAI_API_KEY is not configured.")
+            return _offline_fallback(prompt, "OpenAI key is not configured")
         
         candidates = list(dict.fromkeys([os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "gpt-4o", "gpt-3.5-turbo"]))
-        last_exception = None
         for model in candidates:
             try:
                 logger.info(f"Dispatching request to OpenAI model: {model}")
@@ -152,33 +140,24 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
                         },
                     )
                     if response.status_code in (401, 403):
-                        if demo_mode:
-                            fallback = _fallback_llm_json(prompt)
-                            fallback["_provider_notice"] = "DEMO_MODE fallback: provider rejected its credential."
-                            return fallback
-                        raise RuntimeError("OpenAI rejected the credential. Check the API key and model access.")
+                        logger.warning("OpenAI rejected the configured credential (HTTP %s)", response.status_code)
+                        return _offline_fallback(prompt, "OpenAI rejected the configured credential")
                     if response.status_code in (404, 400, 429) and model != candidates[-1]:
                         continue
                     response.raise_for_status()
                 raw = response.json()["choices"][0]["message"]["content"]
                 return _json_object(raw)
-            except RuntimeError:
-                raise
+            except RuntimeError as e:
+                logger.warning("OpenAI request failed (%s)", type(e).__name__)
+                return _offline_fallback(prompt, "OpenAI request failed")
             except Exception as e:
-                last_exception = e
                 logger.warning("OpenAI model %s failed (%s)", model, type(e).__name__)
                 if model == candidates[-1]:
                     logger.error("All OpenAI model attempts failed.")
-                    if demo_mode:
-                        fallback = _fallback_llm_json(prompt)
-                        fallback["_provider_notice"] = "DEMO_MODE fallback: OpenAI could not complete the request."
-                        return fallback
-                    raise RuntimeError("OpenAI could not complete the request. Check key, model access, quota, and connectivity.") from last_exception
-        raise RuntimeError("OpenAI could not complete the request.")
+                    return _offline_fallback(prompt, "OpenAI could not complete the request")
+        return _offline_fallback(prompt, "OpenAI could not complete the request")
     else:
-        if demo_mode:
-            return _fallback_llm_json(prompt)
-        raise RuntimeError("LLM_PROVIDER must be gemini or openai")
+        return _offline_fallback(prompt, "AI provider is not configured")
 
 SKILL_CATALOG = [
     "Python", "JavaScript", "TypeScript", "Go", "Golang", "Java", "C++", "C#", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "SQL", "HTML", "CSS",

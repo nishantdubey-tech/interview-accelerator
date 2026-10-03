@@ -193,7 +193,7 @@ This heuristic has not been validated as a psychometric instrument. Answer ratin
 | `DEMO_MODE` | No | `false` | Enables the app's explicit demo fallback behavior |
 | `FRONTEND_ORIGIN` | No | `http://localhost:8000` | Permitted CORS origin |
 
-Provider credentials are server-side only. Set the active provider key in Render's environment settings; never place a provider key in browser storage or paste one into the public repository. `/api/health` reports whether a key is configured, not whether it is valid or usable. A real provider request is the only confirmation that the LLM is working. Production mode returns a clear error if that request fails instead of presenting deterministic demo output as live AI.
+Provider credentials are server-side only. Set the active provider key in Render's environment settings; never place a provider key in browser storage or paste one into the public repository. `/api/health` reports whether a key is configured, not whether it is valid or usable. If a provider request fails, the app keeps the practice flow usable with a local answer-grounded fallback and shows a visible notice that the response is not from a live model. Restore real LLM responses by replacing the provider key and verifying a successful live request.
 
 ---
 
@@ -253,7 +253,7 @@ Open the app, choose a sample profile or enter a job description and resume, run
 
 ## Live deployment status
 
-On October 4, 2026, `/api/health` showed a Gemini credential is configured, but a synthetic live request failed at the provider. The health endpoint confirms presence only, not validity. Replace `GEMINI_API_KEY` in Render's Environment settings and save/redeploy; then run a fresh analysis and complete an interview/report to verify live LLM access. Render's free instance may spin down after inactivity. The public Render service is connected to this repository, and `render.yaml` documents settings for a new service.
+On October 4, 2026, `/api/health` showed a Gemini credential is configured, but a synthetic live request failed at the provider. The health endpoint confirms presence only, not validity. Until the key is replaced, the app uses its clearly labeled local fallback to keep the practice journey available. Replace `GEMINI_API_KEY` in Render's Environment settings and save/redeploy; then run a fresh analysis and complete an interview/report to verify live LLM access. Render's free instance may spin down after inactivity. The public Render service is connected to this repository, and `render.yaml` documents settings for a new service.
 
 ## Evaluation methodology
 
