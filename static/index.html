@@ -181,6 +181,63 @@
               <div class="preview-highlight-box" id="previewHighlightBox">
                 <strong>Executive Highlight:</strong> <span id="previewSummaryText">...</span>
               </div>
+
+              <!-- Candidate Video Preview & Pre-Flight Check -->
+              <div class="candidate-video-preview-box" id="setupVideoPreviewBox">
+                <div class="video-preview-header">
+                  <div class="video-title-wrap">
+                    <span class="video-dot" id="setupVideoStatusDot"></span>
+                    <span class="video-title">Candidate Video Preview & Camera Check</span>
+                    <span class="video-badge" id="setupVideoBadge">Ready</span>
+                  </div>
+                  <div class="video-controls-header">
+                    <button type="button" class="btn-toggle-cam" id="setupToggleCamBtn">
+                      <span>📹 Start Camera</span>
+                    </button>
+                    <button type="button" class="btn-toggle-cam" id="setupVirtualCamBtn" title="Test with simulated candidate video stream">
+                      <span>🎭 Virtual Feed</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="video-viewport" id="setupVideoViewport">
+                  <video id="setupWebcamVideo" autoplay muted playsinline class="hidden"></video>
+                  <canvas id="setupWebcamCanvas" class="hidden"></canvas>
+                  <div class="video-overlay-hud hidden" id="setupVideoHud">
+                    <div class="hud-top">
+                      <span class="hud-rec-badge"><span class="hud-rec-dot"></span> LIVE PREVIEW</span>
+                      <span class="hud-res-badge">HD 1080p</span>
+                    </div>
+                    <div class="hud-bottom">
+                      <span class="hud-name" id="setupHudCandidateName">Candidate Preview</span>
+                      <span class="hud-audio-indicator" id="setupHudAudioIndicator">🎙️ Audio Normal</span>
+                    </div>
+                  </div>
+                  <div class="video-placeholder" id="setupVideoPlaceholder">
+                    <div class="placeholder-icon">📹</div>
+                    <div class="placeholder-title">Camera Preview Inactive</div>
+                    <div class="placeholder-sub">Click "Start Camera" to test your webcam or "Virtual Feed" to simulate video</div>
+                  </div>
+                </div>
+
+                <div class="video-preflight-row">
+                  <div class="preflight-item">
+                    <span class="preflight-icon">💡</span>
+                    <span class="preflight-label">Lighting:</span>
+                    <span class="preflight-status" id="preflightLighting">Optimal</span>
+                  </div>
+                  <div class="preflight-item">
+                    <span class="preflight-icon">👤</span>
+                    <span class="preflight-label">Framing:</span>
+                    <span class="preflight-status" id="preflightFraming">Centered</span>
+                  </div>
+                  <div class="preflight-item">
+                    <span class="preflight-icon">🎙️</span>
+                    <span class="preflight-label">Mic Level:</span>
+                    <span class="preflight-status" id="preflightMic">Detected</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -351,16 +408,38 @@
               </div>
             </div>
 
-            <!-- Bonus: Candidate Camera Preview -->
-            <div class="webcam-card">
+            <!-- Candidate Video Preview & Live Camera -->
+            <div class="webcam-card" id="interviewWebcamCard">
               <div class="webcam-header">
-                <span>📹 Candidate Video Preview</span>
-                <button class="btn-toggle-cam" id="toggleCamBtn">Turn On</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="hud-rec-dot hidden" id="interviewVideoDot"></span>
+                  <span style="font-weight:700;">📹 Candidate Video Preview</span>
+                  <span class="video-badge" id="interviewVideoBadge">Off</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn-toggle-cam" id="toggleCamBtn">Turn On</button>
+                  <button class="btn-toggle-cam" id="interviewVirtualCamBtn" title="Simulate candidate video stream">🎭 Virtual</button>
+                </div>
               </div>
               <div class="webcam-container" id="webcamContainer">
                 <video id="webcamVideo" autoplay muted playsinline class="hidden"></video>
+                <canvas id="interviewWebcamCanvas" class="hidden"></canvas>
+                <div class="video-overlay-hud hidden" id="interviewVideoHud">
+                  <div class="hud-top">
+                    <span class="hud-rec-badge"><span class="hud-rec-dot"></span> LIVE HD</span>
+                    <span class="hud-res-badge">1080p · 30 FPS</span>
+                  </div>
+                  <div class="hud-bottom">
+                    <span class="hud-name" id="interviewHudCandidateName">Candidate</span>
+                    <div class="hud-mini-meter" title="Mic voice activity">
+                      <div class="hud-mini-meter-fill" id="interviewHudMeterFill"></div>
+                    </div>
+                  </div>
+                </div>
                 <div class="webcam-placeholder" id="webcamPlaceholder">
-                  <span>Camera Off (Audio-Only Mode)</span>
+                  <div style="font-size:22px; margin-bottom:4px; opacity:0.8;">📹</div>
+                  <div><b>Camera Off (Audio-Only Mode)</b></div>
+                  <div style="font-size:10px; color:var(--text-subtle); margin-top:3px;">Click "Turn On" for webcam or "Virtual" for simulated feed</div>
                 </div>
               </div>
             </div>

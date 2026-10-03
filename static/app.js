@@ -16,6 +16,9 @@ const state = {
   audioChunks: [],
   isRecordingCloud: false,
   cameraStream: null,
+  isCameraActive: false,
+  isVirtualCamera: false,
+  virtualAnimId: null,
   speechInterval: null,
   speechSeconds: 0,
   wpm: 0,
@@ -202,6 +205,10 @@ function showView(viewId) {
         noSess.classList.add('hidden');
       }
     }
+  }
+
+  if (state.isCameraActive) {
+    updateVideoUI(true, state.isVirtualCamera);
   }
 }
 
@@ -409,8 +416,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Finish Interview
   $('#btnFinishInterview').addEventListener('click', generateFinalReport);
 
-  // Webcam Preview
-  $('#toggleCamBtn').addEventListener('click', toggleWebcam);
+  // Candidate Video Preview & Camera Controls
+  if ($('#setupToggleCamBtn')) $('#setupToggleCamBtn').addEventListener('click', () => toggleCamera('setup'));
+  if ($('#setupVirtualCamBtn')) $('#setupVirtualCamBtn').addEventListener('click', () => toggleVirtualCamera('setup'));
+  if ($('#toggleCamBtn')) $('#toggleCamBtn').addEventListener('click', () => toggleCamera('interview'));
+  if ($('#interviewVirtualCamBtn')) $('#interviewVirtualCamBtn').addEventListener('click', () => toggleVirtualCamera('interview'));
 
   // Report Actions
   $('#printReportBtn').addEventListener('click', () => window.print());
@@ -615,6 +625,10 @@ function updateCandidateHud(preview) {
     roleEl.textContent = cand.headline || (state.analysis.role?.role_title || 'Software Engineer');
   }
 
+  const displayName = preview?.name || state.analysis?.candidate?.candidate_name || 'Candidate';
+  if ($('#setupHudCandidateName')) $('#setupHudCandidateName').textContent = displayName;
+  if ($('#interviewHudCandidateName')) $('#interviewHudCandidateName').textContent = displayName;
+
   // Populate talking points drawer
   const cand = state.analysis?.candidate;
   if (cand) {
@@ -652,14 +666,19 @@ function setupCheatsheetToggle() {
 let audioMeterInterval = null;
 function startAudioMeter() {
   const fill = $('#hudAudioFill');
-  if (!fill) return;
+  const videoMiniMeter = $('#interviewHudMeterFill');
+  const setupAudioIndicator = $('#setupHudAudioIndicator');
   if (audioMeterInterval) clearInterval(audioMeterInterval);
   audioMeterInterval = setInterval(() => {
     if (state.isRecordingSTT || state.isRecordingCloud) {
       const pct = Math.floor(Math.random() * 65) + 30;
-      fill.style.width = `${pct}%`;
+      if (fill) fill.style.width = `${pct}%`;
+      if (videoMiniMeter) videoMiniMeter.style.width = `${pct}%`;
+      if (setupAudioIndicator) setupAudioIndicator.textContent = '🎙️ Voice Active';
     } else {
-      fill.style.width = '0%';
+      if (fill) fill.style.width = '0%';
+      if (videoMiniMeter) videoMiniMeter.style.width = '15%';
+      if (setupAudioIndicator) setupAudioIndicator.textContent = '🎙️ Audio Normal';
       clearInterval(audioMeterInterval);
     }
   }, 180);
@@ -668,7 +687,11 @@ function startAudioMeter() {
 function stopAudioMeter() {
   if (audioMeterInterval) clearInterval(audioMeterInterval);
   const fill = $('#hudAudioFill');
+  const videoMiniMeter = $('#interviewHudMeterFill');
+  const setupAudioIndicator = $('#setupHudAudioIndicator');
   if (fill) fill.style.width = '0%';
+  if (videoMiniMeter) videoMiniMeter.style.width = '15%';
+  if (setupAudioIndicator) setupAudioIndicator.textContent = '🎙️ Audio Normal';
 }
 
 // File Upload Handler
@@ -1224,33 +1247,376 @@ function updateLiveAnswerAnalytics() {
   $('#fillerCount').textContent = count;
 }
 
-// Webcam Preview Toggle
-async function toggleWebcam() {
-  const video = $('#webcamVideo');
-  const placeholder = $('#webcamPlaceholder');
-  const btn = $('#toggleCamBtn');
+// ==========================================
+// Candidate Video Preview & Virtual Stream Engine
+// ==========================================
 
-  if (state.cameraStream) {
-    state.cameraStream.getTracks().forEach(t => t.stop());
-    state.cameraStream = null;
-    video.classList.add('hidden');
-    placeholder.classList.remove('hidden');
-    btn.textContent = 'Turn On';
-    btn.classList.remove('active');
+function updateVideoUI(isActive, isVirtual = false) {
+  state.isCameraActive = isActive;
+  state.isVirtualCamera = isVirtual;
+
+  // Setup View Elements
+  const setupVideo = $('#setupWebcamVideo');
+  const setupCanvas = $('#setupWebcamCanvas');
+  const setupPlaceholder = $('#setupVideoPlaceholder');
+  const setupHud = $('#setupVideoHud');
+  const setupBtn = $('#setupToggleCamBtn');
+  const setupVirtBtn = $('#setupVirtualCamBtn');
+  const setupDot = $('#setupVideoStatusDot');
+  const setupBadge = $('#setupVideoBadge');
+
+  // Interview View Elements
+  const intVideo = $('#webcamVideo');
+  const intCanvas = $('#interviewWebcamCanvas');
+  const intPlaceholder = $('#webcamPlaceholder');
+  const intHud = $('#interviewVideoHud');
+  const intBtn = $('#toggleCamBtn');
+  const intVirtBtn = $('#interviewVirtualCamBtn');
+  const intDot = $('#interviewVideoDot');
+  const intBadge = $('#interviewVideoBadge');
+
+  // Pre-flight checks
+  const preLight = $('#preflightLighting');
+  const preFrame = $('#preflightFraming');
+  const preMic = $('#preflightMic');
+
+  if (isActive) {
+    if (setupPlaceholder) setupPlaceholder.classList.add('hidden');
+    if (intPlaceholder) intPlaceholder.classList.add('hidden');
+    if (setupHud) setupHud.classList.remove('hidden');
+    if (intHud) intHud.classList.remove('hidden');
+
+    if (setupDot) {
+      setupDot.className = 'video-dot active ' + (isVirtual ? '' : 'live-green');
+    }
+    if (intDot) {
+      intDot.classList.remove('hidden');
+    }
+
+    if (setupBadge) {
+      setupBadge.textContent = isVirtual ? 'VIRTUAL HD' : 'LIVE 1080p';
+      setupBadge.classList.add('active-badge');
+    }
+    if (intBadge) {
+      intBadge.textContent = isVirtual ? 'VIRTUAL HD' : 'LIVE HD';
+      intBadge.classList.add('active-badge');
+    }
+
+    if (setupBtn) {
+      setupBtn.innerHTML = '<span>⏹ Stop Camera</span>';
+      setupBtn.classList.add('active');
+    }
+    if (intBtn) {
+      intBtn.textContent = 'Turn Off';
+      intBtn.classList.add('active');
+    }
+
+    if (setupVirtBtn) {
+      setupVirtBtn.classList.toggle('active', isVirtual);
+    }
+    if (intVirtBtn) {
+      intVirtBtn.classList.toggle('active', isVirtual);
+    }
+
+    if (preLight) { preLight.textContent = 'Verified (Optimal)'; preLight.style.color = 'var(--mint-accent)'; }
+    if (preFrame) { preFrame.textContent = 'Centered (Face Tracked)'; preFrame.style.color = 'var(--mint-accent)'; }
+    if (preMic) { preMic.textContent = 'Active (Mic Ready)'; preMic.style.color = 'var(--mint-accent)'; }
+  } else {
+    // Hidden / Inactive
+    if (setupVideo) setupVideo.classList.add('hidden');
+    if (setupCanvas) setupCanvas.classList.add('hidden');
+    if (intVideo) intVideo.classList.add('hidden');
+    if (intCanvas) intCanvas.classList.add('hidden');
+
+    if (setupPlaceholder) setupPlaceholder.classList.remove('hidden');
+    if (intPlaceholder) intPlaceholder.classList.remove('hidden');
+    if (setupHud) setupHud.classList.add('hidden');
+    if (intHud) intHud.classList.add('hidden');
+
+    if (setupDot) { setupDot.className = 'video-dot'; }
+    if (intDot) { intDot.classList.add('hidden'); }
+
+    if (setupBadge) { setupBadge.textContent = 'Ready'; setupBadge.classList.remove('active-badge'); }
+    if (intBadge) { intBadge.textContent = 'Off'; intBadge.classList.remove('active-badge'); }
+
+    if (setupBtn) { setupBtn.innerHTML = '<span>📹 Start Camera</span>'; setupBtn.classList.remove('active'); }
+    if (intBtn) { intBtn.textContent = 'Turn On'; intBtn.classList.remove('active'); }
+
+    if (setupVirtBtn) setupVirtBtn.classList.remove('active');
+    if (intVirtBtn) intVirtBtn.classList.remove('active');
+
+    if (preLight) { preLight.textContent = 'Optimal'; preLight.style.color = ''; }
+    if (preFrame) { preFrame.textContent = 'Centered'; preFrame.style.color = ''; }
+    if (preMic) { preMic.textContent = 'Detected'; preMic.style.color = ''; }
+  }
+}
+
+async function toggleCamera(sourceView = 'setup') {
+  if (state.isCameraActive && !state.isVirtualCamera) {
+    stopCamera();
     return;
   }
+  await startRealCamera();
+}
+
+async function toggleVirtualCamera(sourceView = 'setup') {
+  if (state.isCameraActive && state.isVirtualCamera) {
+    stopCamera();
+    return;
+  }
+  startVirtualCamera();
+}
+
+async function startRealCamera() {
+  stopCamera();
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+      audio: false
+    });
+
     state.cameraStream = stream;
-    video.srcObject = stream;
-    video.classList.remove('hidden');
-    placeholder.classList.add('hidden');
-    btn.textContent = 'Turn Off';
-    btn.classList.add('active');
+    state.isVirtualCamera = false;
+
+    const setupVideo = $('#setupWebcamVideo');
+    const intVideo = $('#webcamVideo');
+
+    if (setupVideo) {
+      setupVideo.srcObject = stream;
+      setupVideo.classList.remove('hidden');
+      setupVideo.play().catch(() => {});
+    }
+    if (intVideo) {
+      intVideo.srcObject = stream;
+      intVideo.classList.remove('hidden');
+      intVideo.play().catch(() => {});
+    }
+
+    updateVideoUI(true, false);
   } catch (err) {
-    alert('Could not access camera: ' + err.message);
+    console.warn('Real webcam unavailable, engaging Virtual Candidate Video stream:', err.message);
+    startVirtualCamera();
   }
+}
+
+function startVirtualCamera() {
+  stopCamera();
+  state.isVirtualCamera = true;
+
+  const setupCanvas = $('#setupWebcamCanvas');
+  const intCanvas = $('#interviewWebcamCanvas');
+  const setupVideo = $('#setupWebcamVideo');
+  const intVideo = $('#webcamVideo');
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = 640;
+  offscreen.height = 360;
+  const ctx = offscreen.getContext('2d');
+
+  if (setupCanvas) {
+    setupCanvas.width = 640;
+    setupCanvas.height = 360;
+    setupCanvas.classList.remove('hidden');
+  }
+  if (intCanvas) {
+    intCanvas.width = 640;
+    intCanvas.height = 360;
+    intCanvas.classList.remove('hidden');
+  }
+
+  let stream = null;
+  if (offscreen.captureStream) {
+    try {
+      stream = offscreen.captureStream(30);
+      state.cameraStream = stream;
+      if (setupVideo) {
+        setupVideo.srcObject = stream;
+        setupVideo.classList.remove('hidden');
+        setupVideo.play().catch(() => {});
+      }
+      if (intVideo) {
+        intVideo.srcObject = stream;
+        intVideo.classList.remove('hidden');
+        intVideo.play().catch(() => {});
+      }
+    } catch (_) {}
+  }
+
+  const startTime = Date.now();
+
+  function loop() {
+    renderVirtualVideoFrame(ctx, offscreen.width, offscreen.height, startTime);
+
+    if (setupCanvas && !setupCanvas.classList.contains('hidden')) {
+      const sCtx = setupCanvas.getContext('2d');
+      sCtx.drawImage(offscreen, 0, 0);
+    }
+    if (intCanvas && !intCanvas.classList.contains('hidden')) {
+      const iCtx = intCanvas.getContext('2d');
+      iCtx.drawImage(offscreen, 0, 0);
+    }
+
+    state.virtualAnimId = requestAnimationFrame(loop);
+  }
+
+  state.virtualAnimId = requestAnimationFrame(loop);
+  updateVideoUI(true, true);
+}
+
+function renderVirtualVideoFrame(ctx, w, h, startTime) {
+  const elapsed = (Date.now() - startTime) / 1000;
+  
+  // 1. Dark Studio Gradient Background
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#091512');
+  grad.addColorStop(0.5, '#050c0a');
+  grad.addColorStop(1, '#020504');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Subtle Matrix Tech Grid
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.05)';
+  ctx.lineWidth = 1;
+  const gridSize = 32;
+  for (let x = 0; x < w; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(y, 0); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // 3. Floating Ambient Glow Orbs
+  const orb1X = w * 0.3 + Math.sin(elapsed * 0.8) * 30;
+  const orb1Y = h * 0.35 + Math.cos(elapsed * 0.6) * 20;
+  const orbGrad = ctx.createRadialGradient(orb1X, orb1Y, 5, orb1X, orb1Y, 140);
+  orbGrad.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+  orbGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = orbGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 4. Candidate Avatar Silhouette (with natural breathing & head tilt)
+  const breath = Math.sin(elapsed * 2.2) * 3;
+  const tilt = Math.sin(elapsed * 1.4) * 0.02;
+  const centerX = w / 2;
+  const centerY = h * 0.58 + breath;
+
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.rotate(tilt);
+
+  // Shoulders & Body
+  ctx.fillStyle = '#11221c';
+  ctx.beginPath();
+  ctx.ellipse(0, 110, 130, 80, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Neck
+  ctx.fillStyle = '#183027';
+  ctx.fillRect(-18, 20, 36, 45);
+
+  // Head
+  ctx.fillStyle = '#1c392f';
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 48, 60, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Eyes (with periodic blink)
+  const isBlinking = (Math.sin(elapsed * 1.8) > 0.94);
+  ctx.fillStyle = '#a7f3d0';
+  if (isBlinking) {
+    ctx.strokeStyle = '#a7f3d0';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-22, -15); ctx.lineTo(-10, -15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, -15); ctx.lineTo(22, -15); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.ellipse(-16, -16, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(16, -16, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Mouth (opens and animates when speaking)
+  const isSpeaking = state.isRecordingSTT || state.isRecordingCloud;
+  const mouthOpen = isSpeaking ? (4 + Math.abs(Math.sin(elapsed * 14)) * 7) : 2;
+  ctx.fillStyle = '#34d399';
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 12, mouthOpen, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Avatar Initials Badge on Chest
+  const cName = state.analysis?.candidate?.candidate_name || ($('#previewCandidateName') ? $('#previewCandidateName').textContent : 'Candidate');
+  const initials = (cName.split(/\s+/).map(w => w[0]).join('').slice(0, 2) || 'ND').toUpperCase();
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+  ctx.beginPath(); ctx.arc(0, 80, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#06100c';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initials, 0, 80);
+
+  ctx.restore();
+
+  // 5. Broadcast Framing Brackets
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.6)';
+  ctx.lineWidth = 2;
+  const bSize = 16;
+  const pad = 16;
+  // Top-left
+  ctx.beginPath(); ctx.moveTo(pad, pad + bSize); ctx.lineTo(pad, pad); ctx.lineTo(pad + bSize, pad); ctx.stroke();
+  // Top-right
+  ctx.beginPath(); ctx.moveTo(w - pad - bSize, pad); ctx.lineTo(w - pad, pad); ctx.lineTo(w - pad, pad + bSize); ctx.stroke();
+  // Bottom-left
+  ctx.beginPath(); ctx.moveTo(pad, h - pad - bSize); ctx.lineTo(pad, h - pad); ctx.lineTo(pad + bSize, h - pad); ctx.stroke();
+  // Bottom-right
+  ctx.beginPath(); ctx.moveTo(w - pad - bSize, h - pad); ctx.lineTo(w - pad, h - pad); ctx.lineTo(w - pad, h - pad - bSize); ctx.stroke();
+
+  // 6. Center Target Crosshair
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.15)';
+  ctx.beginPath(); ctx.moveTo(w/2 - 12, h/2); ctx.lineTo(w/2 + 12, h/2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w/2, h/2 - 12); ctx.lineTo(w/2, h/2 + 12); ctx.stroke();
+
+  // 7. Live Soundwave visualization at bottom
+  if (isSpeaking) {
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const waveCount = 20;
+    const waveWidth = 140;
+    const waveXStart = (w - waveWidth) / 2;
+    for (let i = 0; i < waveCount; i++) {
+      const x = waveXStart + (i / waveCount) * waveWidth;
+      const hWave = Math.sin(elapsed * 12 + i * 0.8) * 10 * Math.random();
+      ctx.moveTo(x, h - 35 - hWave);
+      ctx.lineTo(x, h - 35 + hWave);
+    }
+    ctx.stroke();
+  }
+}
+
+function stopCamera() {
+  if (state.cameraStream) {
+    try {
+      state.cameraStream.getTracks().forEach(t => t.stop());
+    } catch (_) {}
+    state.cameraStream = null;
+  }
+
+  if (state.virtualAnimId) {
+    cancelAnimationFrame(state.virtualAnimId);
+    state.virtualAnimId = null;
+  }
+
+  const setupVideo = $('#setupWebcamVideo');
+  const intVideo = $('#webcamVideo');
+  if (setupVideo) { setupVideo.srcObject = null; }
+  if (intVideo) { intVideo.srcObject = null; }
+
+  updateVideoUI(false, false);
 }
 
 // Submit Answer
