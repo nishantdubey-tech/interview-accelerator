@@ -106,11 +106,13 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
                 last_exception = e
                 logger.warning(f"Error attempting Gemini model {model}: {e}")
                 if model == model_list[-1]:
-                    if demo_mode:
-                        logger.info("Falling back to demo mode response after provider failure")
-                        return _fallback_llm_json(prompt)
-                    raise last_exception
-        raise last_exception or RuntimeError("All Gemini model attempts failed")
+                    logger.info(f"Engaging resilient fallback after provider failure: {last_exception}")
+                    fallback = _fallback_llm_json(prompt)
+                    fallback["_provider_notice"] = f"AI fallback active: {str(last_exception)[:140]}"
+                    return fallback
+        fallback = _fallback_llm_json(prompt)
+        fallback["_provider_notice"] = "AI fallback active"
+        return fallback
 
     elif provider == "openai":
         key = os.getenv("OPENAI_API_KEY")
@@ -147,10 +149,13 @@ async def llm_json(system: str, prompt: str) -> dict[str, Any]:
                 last_exception = e
                 logger.warning(f"Error attempting OpenAI model {model}: {e}")
                 if model == candidates[-1]:
-                    if demo_mode:
-                        return _fallback_llm_json(prompt)
-                    raise last_exception
-        raise last_exception or RuntimeError("All OpenAI model attempts failed")
+                    logger.info(f"Engaging resilient fallback after OpenAI provider failure: {last_exception}")
+                    fallback = _fallback_llm_json(prompt)
+                    fallback["_provider_notice"] = f"AI fallback active: {str(last_exception)[:140]}"
+                    return fallback
+        fallback = _fallback_llm_json(prompt)
+        fallback["_provider_notice"] = "AI fallback active"
+        return fallback
     else:
         if demo_mode:
             return _fallback_llm_json(prompt)
