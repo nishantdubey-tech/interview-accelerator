@@ -1,4 +1,5 @@
 import unittest
+import os
 from unittest.mock import patch
 
 import app
@@ -6,6 +7,13 @@ import httpx
 
 
 class InterviewFlowTests(unittest.IsolatedAsyncioTestCase):
+    async def test_health_never_returns_unrecognized_provider_value(self):
+        with patch.dict(os.environ, {"LLM_PROVIDER": "sensitive-value", "GEMINI_API_KEY": "test-key"}):
+            result = await app.health()
+        self.assertEqual(result["provider"], "invalid")
+        self.assertFalse(result["ai_configured"])
+        self.assertNotIn("sensitive-value", str(result))
+
     async def test_health_and_upload_api(self):
         transport = httpx.ASGITransport(app=app.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

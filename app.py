@@ -65,8 +65,10 @@ def fail(e: Exception):
 
 @app.get("/api/health")
 async def health():
-    provider = os.getenv("LLM_PROVIDER", "gemini").lower()
-    configured = bool(os.getenv("GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"))
+    selected = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+    provider = selected if selected in {"gemini", "openai"} else "invalid"
+    key_name = {"gemini":"GEMINI_API_KEY", "openai":"OPENAI_API_KEY"}.get(provider)
+    configured = bool(os.getenv(key_name)) if key_name else False
     return {"status":"ok", "provider":provider, "ai_configured":configured, "demo_mode":os.getenv("DEMO_MODE","false").lower()=="true"}
 
 @app.post("/api/extract")
