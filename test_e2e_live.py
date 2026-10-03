@@ -24,9 +24,10 @@ async def run_e2e_test():
         # Step 2: File Extraction
         print("\n2. Testing POST /api/extract with TXT file...")
         resume_text = (
-            "Nishant Dubey. Senior AI Product Engineer with 3+ years experience building "
-            "production RAG pipelines and LLM microservices with Python, FastAPI, and Pinecone. "
-            "Optimized hybrid search latency by 28% across 1.2M documents and deployed microservices on AWS ECS."
+            "Alex Rivera. AI Engineer with 4 years experience building "
+            "RAG pipelines and LLM services with Python, FastAPI, and a vector database. "
+            "Improved hybrid search latency by 28% on a synthetic 1.2M-document benchmark "
+            "and deployed services to a managed container platform."
         )
         extract_resp = await client.post(
             "/api/extract",
@@ -39,7 +40,7 @@ async def run_e2e_test():
         # Step 3: Profile & Job Fit Analysis
         print("\n3. Testing POST /api/analyze...")
         jd_text = (
-            "Title: Senior AI / LLM Product Engineer. Company: Synthetix AI.\n"
+            "Title: Senior AI Platform Engineer. Company: Example Systems.\n"
             "We are seeking an AI Engineer to build RAG pipelines and LLM microservices using Python, "
             "FastAPI, LangChain, and vector databases (Pinecone, Qdrant). Must have experience with "
             "latency optimization, telemetry, and evaluation frameworks."
@@ -76,10 +77,10 @@ async def run_e2e_test():
         # Step 5: Answer Adaptive Questions (Levels 1 -> 2 -> 3)
         print("\n5. Testing POST /api/interview/answer across 7 turns (3 levels)...")
         candidate_answers = [
-            "At Nexus Data Labs, I owned the entire RAG retrieval pipeline, building the query preprocessor and implementing hybrid BM25 and dense embeddings with Pinecone.",
-            "We measured the 28% latency reduction by comparing P95 response times before and after introducing asynchronous batching and embedding caching in Redis.",
-            "Our primary metric was P95 latency and Recall@10 on benchmark evaluation datasets using Ragas.",
-            "When scaling to 15k requests per second, we introduced horizontal autoscaling on AWS ECS and partitioned the vector indexes by tenant ID.",
+            "At Example Systems, I owned the RAG retrieval pipeline, building the query preprocessor and combining BM25 with dense vector search.",
+            "We measured the 28% latency reduction by comparing P95 response times before and after asynchronous batching and embedding caching.",
+            "Our primary metrics were P95 latency and Recall@10 on held-out benchmark queries.",
+            "When scaling to 15 thousand requests per second, we introduced horizontal autoscaling and partitioned vector indexes by tenant ID.",
             "For consistency, we implemented optimistic locking with version vectors and idempotent webhook handlers to prevent duplicate transactions.",
             "If the primary vector database experiences transient timeouts, we degrade gracefully by serving cached semantic search results and falling back to lexical search.",
             "We chose hybrid search over pure dense vector retrieval because keyword matching is critical for exact domain terms like error codes and product SKU numbers."

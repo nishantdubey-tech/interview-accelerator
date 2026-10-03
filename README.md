@@ -1,6 +1,6 @@
 # Forma — AI Interview Accelerator
 
-Forma is an AI-powered interview practice platform that bridges the gap between static question lists and authentic, high-stakes technical interviews. By deeply analyzing a target Job Description and Candidate Resume, Forma extracts structured competencies, calculates an explainable evidence-weighted Job Fit score, conducts a personalized 3-level adaptive voice interview, evaluates candidate reasoning in real time, and synthesizes an actionable Performance Report with prioritized preparation gaps and an objective Interview Readiness score.
+Forma is an AI-powered interview practice platform that analyzes a job description and candidate resume, calculates an explainable evidence-weighted Job Fit score, conducts a personalized three-level adaptive interview, evaluates answers, and produces a preparation report. Its readiness score is a coaching estimate, not a hiring decision or validated psychometric result.
 
 ---
 
@@ -9,6 +9,7 @@ Forma is an AI-powered interview practice platform that bridges the gap between 
 - **Live Deployed Application:** [https://interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com)
 - **GitHub Repository:** [https://github.com/nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator)
 - **Health Endpoint:** [https://interview-accelerator-44ui.onrender.com/api/health](https://interview-accelerator-44ui.onrender.com/api/health)
+- **Demo video:** [demo/forma-demo.mp4](demo/forma-demo.mp4) (end-to-end recording; see [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for the walkthrough)
 
 ---
 
@@ -42,7 +43,7 @@ Forma solves this by acting as a calibrated, adaptive technical interviewer that
          ┌─────────────────┴─────────────────┐
          ▼                                   ▼
 [Level 1: Screening]             [Candidate Voice Response]
-(Motivation & Resume claims)     (Web Speech STT / Cloud Fallback)
+(Motivation & Resume claims)     (Web Speech STT / MediaRecorder fallback)
          │                                   │
          ▼                                   ▼
 [Level 2: Competency]            [Real-Time Answer Evaluation]
@@ -61,7 +62,7 @@ Forma solves this by acting as a calibrated, adaptive technical interviewer that
 [Question-Level Feedback]        [Interview Readiness Score /100]
 ```
 
-1. **Input & Profile Ingestion:** Paste text directly or upload PDF, DOCX, or TXT files (up to 8 MB). Alternatively, use the 1-click Quick-Load Presets for instant testing.
+1. **Input & Profile Ingestion:** Paste text directly or upload PDF, DOCX, or TXT files (up to 8 MB). Three built-in sample profiles let evaluators try the flow quickly.
 2. **Role & Candidate Analysis:** Structured AI extraction separates requirements into required skills, preferred qualifications, and candidate claims to probe.
 3. **Transparent Job Fit Engine:** Computes a mathematical score (0–100%) from 6 weighted evidence dimensions with Strong/Partial/Weak categorization.
 4. **Adaptive Interview Simulator:**
@@ -74,7 +75,7 @@ Forma solves this by acting as a calibrated, adaptive technical interviewer that
    - Live speech analytics tracks duration, Words Per Minute (WPM), and filler word counts.
    - Optional candidate webcam preview toggle.
 6. **Real-Time Evaluation:** Every answer receives immediate structured feedback with scores and the rationale for the subsequent question.
-7. **Comprehensive Performance Report:** Synthesizes an overall interview score, 7 competency progress bars, answer-grounded strengths/weaknesses, prioritized preparation gap cards (Priority 1, 2, 3), question-by-question critiques, and a defensible Interview Readiness rating.
+7. **Performance Report:** Synthesizes an overall interview score, competency breakdown, answer-grounded strengths/weaknesses, prioritized preparation gaps, question-by-question feedback, and a readiness coaching estimate.
 
 ---
 
@@ -86,7 +87,10 @@ forma-interview-accelerator/
 ├── requirements.txt         # Production Python dependencies
 ├── render.yaml              # Render web service deployment configuration
 ├── tests/
-│   └── test_flow.py         # Full automated integration test suite (6 tests)
+│   └── test_flow.py         # Deterministic API and flow tests
+├── test_e2e_live.py         # Optional live-provider end-to-end exercise
+├── demo/
+│   └── forma-demo.mp4       # Recorded evaluator walkthrough
 ├── static/
 │   ├── index.html           # Semantic, accessible HTML5 dashboard & interview room
 │   ├── styles.css           # Modern custom CSS design system, animations, print stylesheet
@@ -105,7 +109,7 @@ forma-interview-accelerator/
   - **Text-to-Speech (TTS):** Browser `SpeechSynthesis` with rate tuning, animated speaking state, play, replay, and stop.
   - **Speech-to-Text (STT):** Primary: Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
   - **Cloud Transcription Fallback:** In-browser `MediaRecorder` captures audio bytes and uploads to `/api/transcribe` powered by Gemini multimodal audio analysis or Whisper.
-- **State Management:** Session memory store tracking turn history, candidate responses, evaluations, cumulative strengths/weaknesses, and active difficulty.
+- **State Management:** Interview sessions are held in server-process memory and cleared when the service restarts.
 
 ---
 
@@ -150,14 +154,16 @@ The prompt strictly directs the model to:
 - **Turns 7+ (Level 3: Deep-Dive):** Tests edge cases, failure recovery, counter-arguments, and architectural reasoning.
 
 ### 3. Interview Readiness Scoring
-Interview readiness is an objective composite score combining live simulation performance with baseline profile fit:
+Interview readiness is a coaching estimate combining simulated performance with baseline profile fit:
 
 $$\text{Readiness Score} = \text{Round}(\text{Interview Performance Average} \times 0.70 + \text{Job Fit} \times 0.30)$$
 
-- 🟢 **Strong Candidate:** $\ge 85\%$ — Highly recommended for hire; comprehensive competency alignment.
-- 🟡 **Interview Ready:** $75\% - 84\%$ — Solid performance; ready for real loops with minor refinements.
-- 🟠 **Needs Preparation:** $60\% - 74\%$ — Demonstrates potential but exhibits gaps in metrics or depth.
-- 🔴 **Not Ready:** $< 60\%$ — Significant knowledge gaps; targeted study plan required before interviewing.
+- 🟢 **Strong Candidate:** $\ge 85\%$ — coaching band for strong simulated performance and profile fit.
+- 🟡 **Interview Ready:** $75\% - 84\%$ — coaching band for solid performance with areas to refine.
+- 🟠 **Needs Preparation:** $60\% - 74\%$ — coaching band indicating practice gaps.
+- 🔴 **Not Ready:** $< 60\%$ — coaching band indicating more targeted preparation may help.
+
+This heuristic has not been validated as a psychometric instrument. Answer ratings depend on model judgments; inspect their evidence and feedback rather than treating a band as a hiring recommendation.
 
 ---
 
@@ -184,8 +190,10 @@ $$\text{Readiness Score} = \text{Round}(\text{Interview Performance Average} \ti
 | `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model endpoint (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`) |
 | `OPENAI_API_KEY` | If OpenAI | Unset | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` | OpenAI model endpoint (`gpt-4o-mini`, `gpt-4o`) |
-| `DEMO_MODE` | No | `false` | When `true`, returns structured demo data if keys are unconfigured |
+| `DEMO_MODE` | No | `false` | Enables the app's explicit demo fallback behavior |
 | `FRONTEND_ORIGIN` | No | `http://localhost:8000` | Permitted CORS origin |
+
+The app also offers optional **Bring Your Own Key** mode. A key entered there is stored in that browser's `localStorage` and sent to this app's API over HTTPS in a request header; it is separate from the server-managed Render key. Use this only with a trusted deployment, do not share browser profiles, and clear the key in the app when finished. The live assignment deployment is configured with a server-side Gemini key, so evaluators should not need to enter one.
 
 ---
 
@@ -221,28 +229,36 @@ Open [http://localhost:8000](http://localhost:8000) in Google Chrome or Microsof
 python3 -m unittest discover -s tests
 ```
 
-The test suite validates:
-1. Provider configuration masking and health API.
-2. File extraction and rejection of unsupported formats.
+The 6 test cases validate:
+1. Provider configuration masking.
+2. Health API, file extraction, and rejection of unsupported formats.
 3. Structured Job Fit calculation and dimension categorization.
-4. 3-level adaptive interview progression and answer-dependent follow-up generation.
-5. Cloud audio transcription endpoint.
-6. Session expiration and error state handling.
+4. 3-level adaptive interview progression, answer-dependent follow-up generation, and report arithmetic.
+5. Cloud audio transcription fallback handling.
+6. Rejection of an invalid interview session.
+
+The separate `test_e2e_live.py` script sends sample data through the configured provider, all interview levels, transcription, and report endpoints. It can use provider quota, so it is intentionally separate from the deterministic test command. Use fictional or anonymized candidate data during evaluation.
 
 ---
 
-## Deployment Instructions
+## Assignment hand-in
 
-### Deploy to Render (Recommended)
-1. Fork or push this repository to your GitHub account.
-2. Create a new **Web Service** on Render and connect your repository.
-3. Configure the service:
-   - **Environment:** Python 3
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn app:app --host 0.0.0.0 --port $PORT`
-   - **Plan:** Free
-4. In the service's **Environment** tab, add:
-   - `LLM_PROVIDER`: `gemini`
-   - `GEMINI_API_KEY`: *(Your Google AI Studio API Key)*
-   - `GEMINI_MODEL`: `gemini-2.5-flash`
-5. Save changes. Render will automatically build and deploy.
+- Live application: [interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com)
+- Public source repository: [nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator)
+- Guided demo: [demo/forma-demo.mp4](demo/forma-demo.mp4)
+- Walkthrough script: [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
+- Requirement map: [ASSIGNMENT_CHECKLIST.md](ASSIGNMENT_CHECKLIST.md)
+
+Open the app, choose a sample profile or enter a job description and resume, run analysis, inspect Job Fit, start the interview, answer by voice or text, and open the final report. The service is configured for live Gemini requests. For voice input, use Chrome or Edge and allow microphone access when prompted; questions are read with browser speech synthesis.
+
+## Live deployment status
+
+At the last live check on October 3, 2026, `/api/health` returned `status: ok`, `provider: gemini`, `ai_configured: true`, and `demo_mode: false`. A synthetic `/api/analyze` request also returned HTTP 200 with structured role analysis. Render's free instance may spin down after inactivity. To rotate the server key, update `GEMINI_API_KEY` in Render's Environment settings and save/redeploy; keep `LLM_PROVIDER=gemini`. The public Render service is already connected to this repository, and `render.yaml` documents the blueprint settings for a new service.
+
+## Evaluation methodology
+
+The deterministic suite checks API validation, the weighted Job Fit calculation, answer-conditioned follow-ups and three-stage transitions, report arithmetic, transcription fallback handling, and invalid sessions. Run `python3 -m unittest discover -s tests`. The optional live pipeline script exercises a seven-answer session with the configured provider. During the walkthrough, verify that a follow-up responds to the immediately preceding answer, the speech transcript is editable, and report strengths/gaps match submitted answers. This is example-based functional evaluation; there is no held-out benchmark, inter-rater study, or validated model-judgment calibration set yet.
+
+## Privacy and limitations
+
+The app sends job descriptions, resumes, answers, and audio sent to the transcription endpoint to the configured model provider. Sessions are held in process memory and disappear after restart; there is no account system or persistence layer. The optional Bring Your Own Key feature stores its key in browser `localStorage`. Do not use confidential candidate data on the public demo. For a production service, add explicit retention/deletion controls, authentication, rate limits, session expiry, monitoring, and a calibrated evaluation dataset.

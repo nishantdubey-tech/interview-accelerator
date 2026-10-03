@@ -1,6 +1,8 @@
 # Assignment Requirement Traceability Checklist
 ### AI Product Engineer Intern — Interview Accelerator Challenge (Assignment 3)
 
+The implementation rows below are a code review checklist, not all independent live-test claims. Live deployment state and demo recording are listed separately at the end.
+
 | # | Requirement | Status | Implementation Location | How to Verify |
 |---|---|---|---|---|
 | 1 | **Inspect Repository & Architecture** | [PASS] | Root, `app.py`, `render.yaml`, `requirements.txt` | Clean modular architecture, FastAPI + Vanilla CSS/JS client |
@@ -44,4 +46,17 @@
 | 39 | **Automated Integration Test Suite** | [PASS] | `tests/test_flow.py` | 6 comprehensive test cases covering health, extract, analyze, interview, transcribe, report |
 | 40 | **Live Render Deployment** | [PASS] | `https://interview-accelerator-44ui.onrender.com` | Deployed on Render free tier with health check passing |
 | 41 | **GitHub Repository** | [PASS] | `https://github.com/nishantdubey-tech/interview-accelerator` | Pushed to main branch with clean commit history |
-| 42 | **Demo Video Script** | [PASS] | `DEMO_SCRIPT.md` | Complete 3-5 minute demonstration walkthrough script |
+| 42 | **Demo Video Script** | [PASS] | `DEMO_SCRIPT.md` | Recording walkthrough and checklist |
+
+## Submission artifacts and live verification
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| Live deployed application | [LIVE CHECKED 2026-10-03] | [Open Forma](https://interview-accelerator-44ui.onrender.com); `/api/health` reported Gemini configured and demo mode off |
+| Public GitHub repository | [PUBLIC] | [nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator) showed the GitHub Public badge |
+| README with architecture, AI, voice, adaptation, evaluation, and technical choices | [INCLUDED] | `README.md` |
+| Demo video showing end-to-end journey | [INCLUDED] | `demo/forma-demo.mp4` |
+| Deterministic automated tests | [6 TEST CASES] | `python3 -m unittest discover -s tests`; covers credential masking, health/extraction, Job Fit math, adaptive flow/levels/report, transcription fallback, and invalid session |
+| Real LLM integration | [LIVE CHECKED EARLIER] | On 2026-10-03, live synthetic `POST /api/analyze` returned HTTP 200 and six fit dimensions. Re-run before final submission because provider credentials/quota can change. |
+
+The app's built-in sample profiles are synthetic. The optional live integration script is separate from unit tests because it sends prompts to the configured provider and can consume quota. A real spoken-answer test also requires a supported browser and microphone permission.

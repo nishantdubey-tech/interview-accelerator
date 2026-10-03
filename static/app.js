@@ -51,8 +51,8 @@ Preferred Skills & Qualifications:
 - Experience fine-tuning open-source LLMs (Llama 3, Mistral).
 - Familiarity with streaming token architectures (WebSockets, Server-Sent Events).
 - BS/MS in Computer Science or equivalent practical engineering track record.`,
-    resume: `Nishant Dubey
-AI & Full-Stack Product Engineer | nishant@example.com | San Francisco, CA
+    resume: `Jordan Lee
+AI & Full-Stack Product Engineer | jordan.lee@example.com | Remote
 
 PROFESSIONAL SUMMARY:
 Product-focused AI Engineer with 3+ years of experience architecting LLM agents, scalable microservices, and high-performance RAG pipelines. Reduced search latency by 28% and improved hallucination detection accuracy across multi-tenant production deployments.
@@ -63,12 +63,12 @@ TECHNICAL SKILLS:
 - Infrastructure: AWS (ECS, S3, CloudWatch), Docker, PostgreSQL, Redis, GitHub Actions
 
 WORK EXPERIENCE:
-AI Engineer — Nexus Data Labs (2023 - Present)
-- Architected enterprise RAG pipeline serving 40k daily queries across 1.2M internal documents; achieved 28% P95 latency reduction using hybrid BM25 + dense vector reranking.
-- Built multi-agent query routing system using FastAPI and LangChain, dynamically selecting optimal model endpoints to reduce monthly API inference costs by 35%.
-- Implemented automated evaluation harness using Ragas to measure context recall and faithfulness across release candidates.
+AI Engineer — Northstar Analytics (2023 - Present)
+- Architected an enterprise RAG pipeline serving 40k daily queries across a synthetic 1.2M-document corpus; achieved 28% P95 latency reduction using hybrid BM25 + dense vector reranking.
+- Built a multi-agent query routing system using FastAPI and LangChain, dynamically selecting model endpoints to reduce monthly inference costs by 35%.
+- Implemented an automated evaluation harness to measure context recall and faithfulness across release candidates.
 
-Software Engineer — CloudScale Systems (2021 - 2023)
+Software Engineer — Cedar Labs (2021 - 2023)
 - Developed RESTful API services handling 15k req/sec with FastAPI, Celery, and PostgreSQL.
 - Designed distributed caching tier using Redis, reducing database CPU load by 40%.
 - Led containerization migration to AWS ECS with zero-downtime deployment pipelines.
@@ -291,7 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const provLabel = $('#providerLabel');
         const provSub = $('#providerSub');
         if (provLabel) provLabel.textContent = key.startsWith('sk-') ? 'OpenAI Live' : 'Gemini AI Studio (Active)';
-        if (provSub) provSub.textContent = 'Key: ' + key.slice(0, 6) + '...' + key.slice(-4);
+        // Never render any portion of a credential into the page, screenshots, or screen recordings.
+        if (provSub) provSub.textContent = 'Custom key saved in this browser';
       } else {
         btn.classList.remove('active-key');
         label.textContent = 'API Key';
