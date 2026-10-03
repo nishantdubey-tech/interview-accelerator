@@ -69,7 +69,7 @@ The service makes outbound HTTPS calls to the selected provider. Errors and quot
 
 ## Deployment
 
-`render.yaml` prepares a single-service Render deployment that serves both the API and client. Set `GEMINI_API_KEY` (or modify provider environment variables for OpenAI) in the Render service secret settings before using AI features. Configure `FRONTEND_ORIGIN` to the public app origin if serving the frontend separately. A GitHub repository has been created at https://github.com/nishantdubey-tech/interview-accelerator and the current source is pushed to `main`. The repository is private. A live application has not been deployed from this workspace. Deployment requires a hosting account and provider API key.
+The application is deployed on Render's free web service plan at [https://interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com). The live health endpoint currently reports `ai_configured: false`: add `GEMINI_API_KEY` in the Render service's Environment settings (or select OpenAI and add `OPENAI_API_KEY`) to enable live analysis and interviewing. Never commit provider keys. The free instance can spin down when idle. A GitHub repository has been created at https://github.com/nishantdubey-tech/interview-accelerator and the current source is pushed to `main`; it remains private pending the owner's action-time confirmation to make it public.
 
 For production beyond a single-instance demo, add persistent database storage, request-level auth/rate limits, server-side session expiration, observability, and a separate transcription service if cross-browser voice support is required. Candidate resume content is sensitive: obtain consent and define retention/deletion policy before public launch.
 
