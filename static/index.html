@@ -165,10 +165,16 @@
             <span class="icon">🔒</span>
             <span>Server-side API processing only. Never stores raw data publicly.</span>
           </div>
-          <button id="analyzeBtn" class="btn-primary btn-large">
-            <span>Analyze My Profile</span>
-            <span class="arrow">→</span>
-          </button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button id="analyzeBtn" class="btn-primary btn-large">
+              <span>Analyze My Profile</span>
+              <span class="arrow">→</span>
+            </button>
+            <button id="quickStartInterviewBtn" class="btn-secondary btn-large" style="border-color:rgba(16,185,129,0.35); color:var(--mint-accent);">
+              <span>🎙️ Start Interview Directly</span>
+              <span class="arrow">→</span>
+            </button>
+          </div>
         </div>
 
         <div id="setupError" class="error-banner hidden"></div>
@@ -239,6 +245,18 @@
           <div class="candidate-grid" id="candidateGrid">
             <!-- Rendered dynamically -->
           </div>
+        </div>
+
+        <!-- Launch Interview Bottom Bar -->
+        <div class="analysis-bottom-bar" style="margin-top:24px; padding:22px; background:var(--bg-card); border:1px solid var(--border-highlight); border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <div>
+            <h4 style="font-size:16px; color:var(--text-main); margin-bottom:4px;">Ready to test your answers?</h4>
+            <p style="font-size:13px; color:var(--text-muted); margin:0;">Launch the 3-level adaptive interview simulator with questions tailored to your profile.</p>
+          </div>
+          <button class="btn-primary btn-large" id="launchInterviewBottom">
+            <span>Start AI Interview Simulator</span>
+            <span class="arrow">→</span>
+          </button>
         </div>
       </section>
 
@@ -343,6 +361,15 @@
 
           <!-- Right Column: Question, Answer Input & Controls -->
           <div class="question-column">
+            <!-- No Session Prompt (if opened without active session) -->
+            <div id="noSessionBanner" class="hidden" style="margin-bottom:16px; padding:16px 20px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <div>
+                <span style="font-weight:600; color:var(--mint-accent);">Simulator Ready:</span>
+                <span style="color:var(--text-muted); font-size:13px; margin-left:6px;">No active interview question loaded yet.</span>
+              </div>
+              <button class="btn-primary btn-sm" id="prepareQuestionsBtn">Formulate Questions Now →</button>
+            </div>
+
             <!-- Current Question Card -->
             <div class="question-card">
               <div class="competency-badge" id="questionCompetency">Role Fit & Ownership</div>

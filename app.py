@@ -93,8 +93,13 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
             }
             try:
                 logger.info(f"Dispatching request to Gemini model: {model}")
-                async with httpx.AsyncClient(timeout=75) as client:
+                async with httpx.AsyncClient(timeout=20) as client:
                     response = await client.post(url, json=payload)
+                    if response.status_code in (401, 403):
+                        logger.warning(f"Gemini API returned status {response.status_code} (Unauthorized/Forbidden). Engaging immediate dynamic fallback.")
+                        fallback = _fallback_llm_json(prompt)
+                        fallback["_provider_notice"] = f"AI fallback active: {response.status_code} Unauthorized"
+                        return fallback
                     if response.status_code in (404, 400, 429) and model != model_list[-1]:
                         logger.warning(f"Gemini model {model} returned status {response.status_code} ({response.text[:120]}). Falling back to next model...")
                         continue
@@ -128,7 +133,7 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
         for model in candidates:
             try:
                 logger.info(f"Dispatching request to OpenAI model: {model}")
-                async with httpx.AsyncClient(timeout=75) as client:
+                async with httpx.AsyncClient(timeout=20) as client:
                     response = await client.post(
                         "https://api.openai.com/v1/chat/completions",
                         headers={"Authorization": f"Bearer {key}"},
@@ -142,7 +147,12 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
                             ],
                         },
                     )
-                    if response.status_code in (404, 400) and model != candidates[-1]:
+                    if response.status_code in (401, 403):
+                        logger.warning(f"OpenAI returned status {response.status_code} Unauthorized/Forbidden. Engaging immediate fallback.")
+                        fallback = _fallback_llm_json(prompt)
+                        fallback["_provider_notice"] = f"AI fallback active: {response.status_code} Unauthorized"
+                        return fallback
+                    if response.status_code in (404, 400, 429) and model != candidates[-1]:
                         continue
                     response.raise_for_status()
                 raw = response.json()["choices"][0]["message"]["content"]

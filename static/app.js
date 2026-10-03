@@ -192,6 +192,17 @@ function showView(viewId) {
   };
   $('#crumbTitle').textContent = titles[viewId] || 'Workspace';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (viewId === 'interviewView') {
+    const noSess = $('#noSessionBanner');
+    if (noSess) {
+      if (!state.session) {
+        noSess.classList.remove('hidden');
+      } else {
+        noSess.classList.add('hidden');
+      }
+    }
+  }
 }
 
 function busy(show, title = 'Working...', subtitle = 'Please keep this tab open') {
@@ -240,10 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Navigation tab clicks
   $$('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', async () => {
       const viewId = tab.dataset.view;
       if (viewId === 'resultsView' && !state.lastReport) {
         alert('Complete at least one interview question in the Simulator first to generate your report.');
+        return;
+      }
+      if (viewId === 'interviewView' && !state.session) {
+        await ensureAndStartInterview();
         return;
       }
       showView(viewId);
@@ -360,8 +375,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Launch Interview Button
+  // Launch Interview Buttons
   $('#launchInterviewFromAnalysis').addEventListener('click', startInterviewFlow);
+  if ($('#launchInterviewBottom')) {
+    $('#launchInterviewBottom').addEventListener('click', startInterviewFlow);
+  }
+  if ($('#quickStartInterviewBtn')) {
+    $('#quickStartInterviewBtn').addEventListener('click', ensureAndStartInterview);
+  }
+  if ($('#prepareQuestionsBtn')) {
+    $('#prepareQuestionsBtn').addEventListener('click', ensureAndStartInterview);
+  }
 
   // TTS Controls
   $('#speakBtn').addEventListener('click', () => speakQuestionText());
@@ -629,7 +653,7 @@ function renderAnalysisView(data) {
 // Start Interview Flow
 async function startInterviewFlow() {
   if (!state.analysis) {
-    showView('setupView');
+    await ensureAndStartInterview();
     return;
   }
 
@@ -638,11 +662,57 @@ async function startInterviewFlow() {
     const session = await api('/api/interview/start', { analysis: state.analysis });
     state.session = session;
     $('#interviewActiveDot').classList.remove('hidden');
+    const noSess = $('#noSessionBanner');
+    if (noSess) noSess.classList.add('hidden');
     showView('interviewView');
     setInterviewQuestion(session);
     speakQuestionText();
   } catch (e) {
     alert(e.message || 'Could not start interview session.');
+  } finally {
+    busy(false);
+  }
+}
+
+// Automatically analyze profile (if needed) and formulate opening questions
+async function ensureAndStartInterview() {
+  if (state.session) {
+    showView('interviewView');
+    return;
+  }
+
+  if (state.analysis) {
+    await startInterviewFlow();
+    return;
+  }
+
+  let jd = ($('#jd')?.value || '').trim();
+  let resume = ($('#resume')?.value || '').trim();
+
+  // If inputs are empty, load the default AI / RAG Engineer preset immediately!
+  if (jd.length < 40 || resume.length < 40) {
+    loadPreset('aiEng');
+    jd = $('#jd').value.trim();
+    resume = $('#resume').value.trim();
+  }
+
+  busy(true, 'Preparing Interview Session...', 'Analyzing role requirements and formulating candidate-specific opening question...');
+  try {
+    const analysis = await api('/api/analyze', { jd, resume });
+    state.analysis = analysis;
+    renderAnalysisView(analysis);
+
+    const session = await api('/api/interview/start', { analysis });
+    state.session = session;
+    $('#interviewActiveDot').classList.remove('hidden');
+    const noSess = $('#noSessionBanner');
+    if (noSess) noSess.classList.add('hidden');
+    showView('interviewView');
+    setInterviewQuestion(session);
+    speakQuestionText();
+  } catch (e) {
+    alert(e.message || 'Could not formulate interview questions.');
+    showView('setupView');
   } finally {
     busy(false);
   }
@@ -929,6 +999,12 @@ async function toggleWebcam() {
 async function handleSubmitAnswer() {
   clearError('#answerError');
   const answer = $('#answerText').value.trim();
+
+  if (!state.session) {
+    showError('#answerError', 'No active interview question loaded. Formulating your personalized question now...');
+    await ensureAndStartInterview();
+    return;
+  }
 
   if (!answer) {
     showError('#answerError', 'Please provide a response before submitting (either speak or type).');
