@@ -2503,9 +2503,326 @@ h1 {
   transition: width 0.15s ease;
 }
 
+/* Preset Header & Clear Inputs Button */
+.preset-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-clear-inputs {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-inputs:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Live Meeting Telemetry Bar */
+.meeting-telemetry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 20, 18, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.telemetry-left, .telemetry-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.telemetry-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mint-accent);
+  box-shadow: 0 0 10px var(--mint-accent);
+  animation: telemetry-pulse 1.8s infinite;
+}
+
+@keyframes telemetry-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.telemetry-room-id {
+  font-weight: 700;
+  color: #fff;
+  font-family: monospace;
+}
+
+.telemetry-sep {
+  color: var(--border-subtle);
+  opacity: 0.6;
+}
+
+.telemetry-pill {
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.secure-pill {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.hd-pill {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--mint-accent);
+}
+
+.telemetry-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f87171;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.rec-dot-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: rec-blink 1s infinite alternate;
+}
+
+@keyframes rec-blink {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.3; transform: scale(0.8); }
+}
+
+.telemetry-timer {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+/* AI Evaluator Console Topline & Badges */
+.evaluator-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.evaluator-role-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--mint-accent);
+}
+
+.evaluator-neural-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Audio Spectrum Frequency Equalizer Bars */
+.equalizer-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 26px;
+  width: 100%;
+  max-width: 180px;
+  margin: 10px auto 14px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.eq-bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--emerald-primary), var(--mint-accent));
+  border-radius: 2px;
+  height: 4px;
+  min-height: 3px;
+  transition: height 0.15s ease;
+}
+
+.equalizer-container.active .eq-bar:nth-child(2n) {
+  animation: eq-bounce 0.45s ease-in-out infinite alternate;
+}
+.equalizer-container.active .eq-bar:nth-child(2n+1) {
+  animation: eq-bounce 0.65s ease-in-out infinite alternate 0.12s;
+}
+.equalizer-container.active .eq-bar:nth-child(3n) {
+  animation: eq-bounce 0.55s ease-in-out infinite alternate 0.22s;
+}
+.equalizer-container.active .eq-bar:nth-child(4n) {
+  animation: eq-bounce 0.75s ease-in-out infinite alternate 0.08s;
+}
+
+@keyframes eq-bounce {
+  0% { height: 4px; }
+  50% { height: 24px; }
+  100% { height: 9px; }
+}
+
+/* Live Closed-Captions Subtitle Console */
+.live-cc-console {
+  background: rgba(10, 20, 18, 0.92);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-top: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.live-cc-console.hidden {
+  display: none !important;
+}
+
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cc-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: var(--emerald-primary);
+  color: #064e3b;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.cc-speaker {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mint-accent);
+}
+
+.cc-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mint-accent);
+  box-shadow: 0 0 6px var(--mint-accent);
+  animation: rec-blink 1.2s infinite;
+}
+
+.cc-ticker-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  font-style: italic;
+}
+
+/* Meeting Controls Bottom Dock */
+.meeting-dock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 22, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 10px 18px;
+  margin-top: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dock-actions-left, .dock-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dock-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.dock-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--mint-accent);
+  transform: translateY(-1px);
+}
+
+.dock-btn.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--mint-accent);
+}
+
+.dock-btn-hangup {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.35));
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  font-weight: 700;
+}
+
+.dock-btn-hangup:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(185, 28, 28, 0.6));
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
 /* Print Stylesheet for Report PDF Export */
 @media print {
-  .sidebar, .topbar, .report-actions, .busy-overlay, .help-modal {
+  .sidebar, .topbar, .report-actions, .busy-overlay, .help-modal, .meeting-telemetry-bar, .meeting-dock-bar, .live-cc-console {
     display: none !important;
   }
   body, .main-content {

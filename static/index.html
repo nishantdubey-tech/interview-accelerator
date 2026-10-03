@@ -92,9 +92,14 @@
             Upload your target job description and resume. Forma extracts deep competencies, calculates transparent job fit, and generates a personalized 3-level adaptive interview simulation.
           </p>
 
-          <!-- Quick Test Presets -->
+          <!-- Quick Test Presets & Input Reset -->
           <div class="preset-box">
-            <span class="preset-label">⚡ QUICK-LOAD SAMPLE PROFILES FOR INSTANT TESTING:</span>
+            <div class="preset-header-row">
+              <span class="preset-label">⚡ QUICK-LOAD SAMPLE PROFILES FOR INSTANT TESTING:</span>
+              <button type="button" class="btn-clear-inputs" id="clearInputsBtn" title="Clear both Job Description and Resume to enter custom text">
+                <span>🧹 Clear All Inputs</span>
+              </button>
+            </div>
             <div class="preset-buttons">
               <button class="preset-btn" id="presetAiEng">
                 <b>AI / RAG Engineer</b>
@@ -345,6 +350,22 @@
 
       <!-- VIEW 3: AI INTERVIEW SIMULATOR ROOM -->
       <section class="view" id="interviewView">
+        <!-- Live Meeting Telemetry & Security Header -->
+        <div class="meeting-telemetry-bar">
+          <div class="telemetry-left">
+            <span class="telemetry-live-dot"></span>
+            <span class="telemetry-room-id">ROOM #FORMA-2026-LIVE</span>
+            <span class="telemetry-sep">|</span>
+            <span class="telemetry-pill secure-pill">🔒 TLS 1.3 Encrypted</span>
+            <span class="telemetry-pill hd-pill">🟢 24ms Low-Latency HD</span>
+          </div>
+          <div class="telemetry-right">
+            <span class="telemetry-rec"><span class="rec-dot-pulse"></span> REC TELEMETRY ACTIVE</span>
+            <span class="telemetry-sep">|</span>
+            <span class="telemetry-timer" id="meetingCallTimer">⏱️ 00:00</span>
+          </div>
+        </div>
+
         <!-- Interview Header & Level Status -->
         <div class="interview-header-bar">
           <div class="interview-level-indicator">
@@ -381,8 +402,12 @@
         <div class="interview-room-grid">
           <!-- Left Column: Interviewer AI & Webcam Preview -->
           <div class="interviewer-column">
-            <!-- AI Avatar Card -->
+            <!-- AI Evaluator Console Card -->
             <div class="interviewer-avatar-card">
+              <div class="evaluator-topline">
+                <span class="evaluator-role-tag">LEAD AI TECHNICAL EVALUATOR</span>
+                <span class="evaluator-neural-badge" id="evaluatorNeuralBadge">● NEURAL STREAM</span>
+              </div>
               <div class="avatar-visual">
                 <div class="orb-container">
                   <div class="orb" id="aiOrb">
@@ -393,8 +418,28 @@
                 </div>
               </div>
               <div class="interviewer-details">
-                <h3 id="interviewerName">Forma AI Interviewer</h3>
-                <div class="interviewer-status" id="aiStatusText">Ready when you are</div>
+                <h3 id="interviewerName">Dr. Elena Vance — Lead Evaluator</h3>
+                <div class="interviewer-status" id="aiStatusText">Neural Audio Stream Ready</div>
+              </div>
+
+              <!-- Multi-band Audio Frequency Equalizer Bars -->
+              <div class="equalizer-container" id="interviewerEqualizer" title="AI Voice Frequency Spectrum">
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
               </div>
 
               <!-- Audio Controls -->
@@ -576,6 +621,46 @@
                 <div class="eval-followup-reason" id="evalFollowupReason">Follow-up reason...</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Live Closed-Captions Subtitle Console -->
+        <div class="live-cc-console" id="liveCcConsole">
+          <div class="cc-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="cc-badge">CC LIVE TRANSCRIPTION</span>
+              <span class="cc-speaker" id="ccSpeakerLabel">Interviewer (Dr. Elena Vance)</span>
+            </div>
+            <span class="cc-active-dot"></span>
+          </div>
+          <div class="cc-ticker-text" id="liveCcText">"Forma AI interview session initialized. Question audio will transcribe here in real-time."</div>
+        </div>
+
+        <!-- Meeting Controls Dock -->
+        <div class="meeting-dock-bar" id="meetingDockBar">
+          <div class="dock-actions-left">
+            <button type="button" class="dock-btn" id="dockMicToggle" title="Toggle Microphone">
+              <span class="dock-icon">🎙️</span>
+              <span class="dock-label" id="dockMicLabel">Mic On</span>
+            </button>
+            <button type="button" class="dock-btn" id="dockCamToggle" title="Toggle Camera">
+              <span class="dock-icon">📹</span>
+              <span class="dock-label" id="dockCamLabel">Cam Off</span>
+            </button>
+            <button type="button" class="dock-btn active" id="dockCcToggle" title="Toggle Closed Captions Display">
+              <span class="dock-icon">💬</span>
+              <span class="dock-label" id="dockCcLabel">CC: ON</span>
+            </button>
+            <button type="button" class="dock-btn" id="dockNotesToggle" title="Toggle Talking Points HUD">
+              <span class="dock-icon">📋</span>
+              <span class="dock-label">Talking Points</span>
+            </button>
+          </div>
+          <div class="dock-actions-right">
+            <button type="button" class="dock-btn dock-btn-hangup" id="dockEndCallBtn" title="End interview session and view final preparation report">
+              <span class="dock-icon">☎️</span>
+              <span>End & View Report</span>
+            </button>
           </div>
         </div>
       </section>

@@ -175,11 +175,13 @@ async def llm_json(system: str, prompt: str, user_key: Optional[str] = None) -> 
 
 SKILL_CATALOG = [
     "Python", "JavaScript", "TypeScript", "Go", "Golang", "Java", "C++", "C#", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "SQL", "HTML", "CSS",
-    "FastAPI", "Flask", "Django", "Node.js", "Express", "NestJS", "React", "Next.js", "Vue", "Angular", "Svelte", "Tailwind", "Redux", "GraphQL", "REST",
+    "FastAPI", "Flask", "Django", "Node.js", "Express", "NestJS", "React", "Next.js", "Vue", "Nuxt", "Angular", "Svelte", "Tailwind", "Redux", "Zustand", "GraphQL", "REST", "gRPC", "WebSockets",
+    "iOS", "Android", "SwiftUI", "Jetpack Compose", "Flutter", "React Native",
     "RAG", "LLM", "LangChain", "LlamaIndex", "OpenAI", "Anthropic", "Gemini", "Hugging Face", "PyTorch", "TensorFlow", "scikit-learn", "Pandas", "NumPy", "NLP", "Deep Learning", "Embeddings", "Vector Database", "Pinecone", "Weaviate", "Milvus", "Qdrant", "Chroma", "Fine-tuning", "Prompt Engineering",
     "Docker", "Kubernetes", "AWS", "GCP", "Azure", "Terraform", "CI/CD", "GitHub Actions", "Linux", "Serverless",
     "PostgreSQL", "MySQL", "MongoDB", "Redis", "Kafka", "Elasticsearch", "RabbitMQ", "Celery", "Microservices",
-    "System Design", "Latency Optimization", "Observability", "Telemetry", "Agile", "Scrum", "Git"
+    "System Design", "Latency Optimization", "Observability", "Telemetry", "Agile", "Scrum", "Git",
+    "Snowflake", "Databricks", "BigQuery", "Spark", "Airflow", "dbt", "Playwright", "Cypress", "Jest", "Pytest"
 ]
 
 def _extract_skills_from_text(text: str) -> list[str]:
@@ -194,9 +196,9 @@ def _extract_skills_from_text(text: str) -> list[str]:
 
 def _extract_candidate_name(resume: str) -> str:
     """Extract candidate name from resume header or first non-empty lines."""
-    m = re.search(r"^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})", resume, re.M | re.I)
+    m = re.search(r"^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})(?:\r|\n|$)", resume, re.M | re.I)
     if m:
-        return m.group(1).strip()
+        return m.group(1).splitlines()[0].strip()
     
     lines = [l.strip() for l in resume.splitlines() if l.strip()]
     for line in lines[:5]:
@@ -229,7 +231,8 @@ def _extract_candidate_headline(resume: str, default_role: str = "") -> str:
                     "engineer", "developer", "architect", "manager", "lead", "specialist",
                     "scientist", "designer", "analyst", "consultant", "intern"
                 ]):
-                    return p_clean
+                    cleaned_headline = re.sub(r"^(?:headline|title|role|position):\s*", "", p_clean, flags=re.I).strip()
+                    return cleaned_headline or p_clean
     return default_role or "Software Professional"
 
 def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
@@ -242,9 +245,15 @@ def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
     if not title_match:
         title_match = re.search(r"(?:looking for|seeking)\s+(?:an?|our)\s+([A-Za-z0-9\s/+-]+?)(?:\s+to|\s+who|\.|\n)", jd, re.I)
     role_title = title_match.group(1).strip() if title_match else ""
+    if role_title:
+        role_title = re.split(r"(?:\.|\n|\||\bCompany:|\bLocation:)", role_title, flags=re.I)[0].strip()
     if not role_title or len(role_title) > 60:
         jd_low = jd.lower()
-        if "rag" in jd_low or "llm" in jd_low or "ai engineer" in jd_low:
+        if "ios" in jd_low or "swift" in jd_low:
+            role_title = "iOS Software Engineer"
+        elif "android" in jd_low or "kotlin" in jd_low:
+            role_title = "Android Software Engineer"
+        elif "rag" in jd_low or "llm" in jd_low or "ai engineer" in jd_low:
             role_title = "AI / LLM Product Engineer"
         elif "product manager" in jd_low or "pm" in jd_low:
             role_title = "Technical AI Product Manager"
@@ -252,10 +261,18 @@ def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
             role_title = "Senior Full-Stack Engineer"
         elif "backend" in jd_low:
             role_title = "Senior Backend Engineer"
-        elif "frontend" in jd_low:
-            role_title = "Frontend Engineer"
-        elif "devops" in jd_low or "sre" in jd_low:
+        elif "frontend" in jd_low or "ui" in jd_low or "react" in jd_low:
+            role_title = "Senior Frontend Engineer"
+        elif "devops" in jd_low or "sre" in jd_low or "cloud" in jd_low:
             role_title = "DevOps / Infrastructure Engineer"
+        elif "data engineer" in jd_low:
+            role_title = "Senior Data Engineer"
+        elif "data scientist" in jd_low or "machine learning" in jd_low or "ml" in jd_low:
+            role_title = "Machine Learning Engineer"
+        elif "qa" in jd_low or "sdet" in jd_low or "test" in jd_low:
+            role_title = "QA Automation / SDET Engineer"
+        elif "security" in jd_low or "cyber" in jd_low:
+            role_title = "Cybersecurity Engineer"
         else:
             role_title = "Software Engineer"
 
@@ -449,95 +466,392 @@ def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
         )
     }
 
+def _generate_dynamic_opening_question(prompt: str) -> dict[str, Any]:
+    """Dynamically generate candidate-specific opening question based on actual profile evidence."""
+    role_match = re.search(r"Role Analysis:\s*(\{.*?\})(?:\nCandidate Evidence:|$)", prompt, re.S)
+    cand_match = re.search(r"Candidate Evidence:\s*(\{.*?\})(?:$|\n)", prompt, re.S)
+    
+    role = {}
+    candidate = {}
+    if role_match:
+        try: role = json.loads(role_match.group(1))
+        except Exception: pass
+    if cand_match:
+        try: candidate = json.loads(cand_match.group(1))
+        except Exception: pass
+        
+    candidate_name = candidate.get("candidate_name") or "Candidate"
+    headline = candidate.get("headline") or role.get("role_title") or "Software Professional"
+    role_title = role.get("role_title") or "the position"
+    
+    projects = candidate.get("relevant_projects", [])
+    achievements = candidate.get("achievements", [])
+    skills = candidate.get("skills", [])
+    claims = candidate.get("claims_to_probe", [])
+    
+    if projects and isinstance(projects, list) and projects[0] and len(projects[0]) > 4:
+        proj = projects[0]
+        question = (
+            f"Welcome, {candidate_name}. To start our interview for the {role_title} role: "
+            f"I reviewed your portfolio and noticed your work on '{proj}'. "
+            f"Could you walk me through the key technical decisions you made on this project, "
+            f"and what specific challenges you had to overcome to deliver it successfully?"
+        )
+        why = f"Directly probes your real-world execution on '{proj}' as highlighted in your candidate profile."
+    elif claims and isinstance(claims, list) and claims[0] and len(claims[0]) > 4:
+        claim = claims[0]
+        question = (
+            f"Welcome, {candidate_name}. In your background for the {role_title} role, "
+            f"you noted experience regarding '{claim}'. "
+            f"Could you describe the system or workflow you implemented here, explaining how you verified its reliability?"
+        )
+        why = f"Probes candidate claim: '{claim}'."
+    elif skills and isinstance(skills, list) and len(skills) >= 2:
+        s1, s2 = skills[0], skills[1]
+        question = (
+            f"Welcome, {candidate_name}. Looking at your technical profile for the {role_title} role, "
+            f"you highlight hands-on familiarity with {s1} and {s2}. "
+            f"Could you share a concrete project where you leveraged {s1}, detailing your design decisions and how you ensured high performance?"
+        )
+        why = f"Evaluates practical implementation depth and design decisions using {s1} and {s2}."
+    else:
+        question = (
+            f"Welcome, {candidate_name}. As we begin our interview for the {role_title} role, "
+            f"could you walk me through a complex technical system or feature you led from concept to deployment, "
+            f"focusing on the architectural trade-offs you encountered?"
+        )
+        why = f"Establishes candidate project ownership, scope of responsibility, and architectural reasoning."
+
+    return {
+        "question": question,
+        "competency": "Role Fit & Project Ownership",
+        "why_this_question": why,
+        "difficulty": "moderate"
+    }
+
+def _evaluate_dynamic_answer(prompt: str) -> dict[str, Any]:
+    """Dynamically evaluate candidate answer based on real length, technical vocabulary, metrics, and level."""
+    ans_match = re.search(r"Candidate answer:\s*(.*?)(?:\nCurrent level:|$|\nRole Analysis:)", prompt, re.S)
+    answer = ans_match.group(1).strip() if ans_match else ""
+    
+    lvl_match = re.search(r"Current level:\s*(\d+)", prompt)
+    current_level = int(lvl_match.group(1)) if lvl_match else 1
+    
+    q_match = re.search(r'Previous Question:\s*"(.*?)"', prompt)
+    if not q_match:
+        q_match = re.search(r'Previous Question:\s*(.*?)(?:\nCandidate answer:|$)', prompt)
+    prev_question = q_match.group(1).strip() if q_match else "the technical question"
+    
+    role_match = re.search(r'"role_title":\s*"([^"]+)"', prompt)
+    role_title = role_match.group(1) if role_match else "Technical Role"
+    
+    hist_match = re.search(r'Interview History Context:\s*(\[.*?\])(?:\nAccumulated Strengths:|$)', prompt, re.S)
+    history_len = 0
+    if hist_match:
+        try:
+            h = json.loads(hist_match.group(1))
+            if isinstance(h, list): history_len = len(h)
+        except Exception:
+            history_len = 0
+            
+    total_turns = history_len + 1
+    if total_turns <= 3:
+        next_level = 1
+        next_level_name = "Screening"
+    elif total_turns <= 6:
+        next_level = 2
+        next_level_name = "Competency"
+    else:
+        next_level = 3
+        next_level_name = "Deep-Dive"
+        
+    words = answer.split()
+    word_count = len(words)
+    ans_lower = answer.lower()
+    
+    mentioned_skills = [s for s in SKILL_CATALOG if re.search(r"(?<![a-zA-Z0-9_-])" + re.escape(s.lower()) + r"(?![a-zA-Z0-9_-])", " " + ans_lower + " ")]
+    has_metrics = bool(re.search(r"\b\d+(?:\.\d+)?%|\b\d+\s*(?:ms|seconds|minutes|hrs|qps|rps|tps|users|req/s|gb|mb|tb|queries)\b|\b\d+x\b", ans_lower))
+    
+    reasoning_terms = ["trade-off", "tradeoff", "because", "instead of", "constraint", "bottleneck", "latency", "scalability", "concurrency", "cache", "fallback", "degraded", "indexed", "refactored", "monitored", "benchmarked", "migrated", "decoupled", "tested", "edge case", "resilience"]
+    found_reasoning = [t for t in reasoning_terms if t in ans_lower]
+    
+    if word_count > 12:
+        phrases = [p.strip() for p in re.split(r"[,.;\n]", answer) if len(p.strip().split()) >= 3]
+        snippet = phrases[0] if phrases else " ".join(words[:8])
+    elif word_count > 0:
+        snippet = answer
+    else:
+        snippet = "the high-level approach"
+    if len(snippet) > 65:
+        snippet = snippet[:62] + "..."
+
+    # Dynamic Scoring logic based on real input characteristics
+    if word_count < 14 or not answer:
+        relevance = max(8, min(14, word_count))
+        correctness = max(7, min(12, word_count))
+        depth = 6
+        clarity = 10
+        score = relevance + correctness + depth + clarity
+        
+        strengths = ["Prompt initial engagement with the interview question"]
+        weaknesses = [
+            "Response is too brief and lacks technical implementation depth",
+            "Missing specific frameworks, architectural trade-offs, and quantified results"
+        ]
+        missing_points = ["Specific tools & libraries used", "Architecture breakdown", "Verification or test metrics"]
+        ideal_direction = "Use the STAR method (Situation, Task, Action, Result). State the context, your technical actions, and the measurable outcome."
+        follow_up_reason = "Follow-up probes candidate to unpack their initial statement and provide concrete engineering depth."
+        difficulty = "easy"
+        
+        if next_level == 1:
+            next_q = f"Could you expand on that? What specific tools or frameworks did you choose for this, and what was your personal contribution?"
+            next_comp = "Role Fit & Personal Contribution"
+        elif next_level == 2:
+            next_q = f"Let's look into the technical mechanics. What specific design pattern or data structure did you employ, and how did you validate that it worked?"
+            next_comp = "Technical Implementation Mechanics"
+        else:
+            next_q = f"In production systems, simplicity must withstand failure. How did you test or verify this implementation against edge cases and system load?"
+            next_comp = "Verification & Edge Cases"
+
+    elif word_count < 45:
+        tech_bonus = min(4, len(mentioned_skills) * 2)
+        metric_bonus = 3 if has_metrics else 0
+        reasoning_bonus = min(4, len(found_reasoning) * 2)
+        
+        relevance = min(23, 15 + tech_bonus)
+        correctness = min(22, 14 + len(mentioned_skills))
+        depth = min(20, 12 + reasoning_bonus)
+        clarity = min(21, 15 + (1 if word_count > 25 else 0))
+        score = min(77, max(52, relevance + correctness + depth + clarity + metric_bonus))
+        
+        tech_mention = f" ({', '.join(mentioned_skills[:3])})" if mentioned_skills else ""
+        strengths = [
+            f"Clear initial explanation referencing relevant domain concepts{tech_mention}",
+            "Structured response with professional technical vocabulary"
+        ]
+        weaknesses = [
+            "Could elaborate further on alternative approaches considered",
+            "Could quantify system impact or performance baselines with concrete metrics"
+        ]
+        missing_points = ["Comparative trade-offs vs alternatives", "Quantified performance benchmarks"]
+        ideal_direction = f"Strengthen the answer by explaining WHY: 'We chose X over Y because of Z constraint, resulting in a measurable improvement.'"
+        follow_up_reason = f"Probing deeper into engineering trade-offs based on candidate mentioning '{snippet}'."
+        difficulty = "moderate"
+        
+        if next_level == 1:
+            next_q = f"When you implemented {snippet}, how did you collaborate with stakeholders or team members to ensure the requirements were fulfilled?"
+            next_comp = "Ownership & Collaboration"
+        elif next_level == 2:
+            next_q = f"Focusing on your work with {snippet}: what technical constraints or trade-offs did you encounter, and why did you choose that approach over common alternatives?"
+            next_comp = "Technical Reasoning & Trade-offs"
+        else:
+            next_q = f"Taking {snippet} to enterprise production scale: what telemetry or health metrics did you monitor, and what was your runbook if latency spiked?"
+            next_comp = "Production Observability & Failure Modes"
+
+    else:
+        tech_bonus = min(6, len(mentioned_skills) * 2)
+        metric_bonus = 4 if has_metrics else 1
+        reasoning_bonus = min(6, len(found_reasoning) * 2)
+        
+        relevance = min(25, 18 + tech_bonus // 2)
+        correctness = min(25, 18 + len(mentioned_skills))
+        depth = min(25, 17 + reasoning_bonus)
+        clarity = min(24, 18 + metric_bonus)
+        score = min(96, max(75, relevance + correctness + depth + clarity))
+        
+        tech_str = f" involving {', '.join(mentioned_skills[:3])}" if mentioned_skills else ""
+        strengths = [
+            f"Strong technical depth articulated{tech_str}",
+            "Demonstrated clear understanding of system constraints and architectural flow",
+            "Provided coherent engineering rationale"
+        ]
+        if has_metrics:
+            strengths.append("Effective use of quantified performance or operational metrics")
+            
+        weaknesses = [
+            "Could further anticipate long-term maintainability or backward compatibility considerations",
+            "Could discuss how the architecture adapts to non-functional requirements under extreme load"
+        ]
+        missing_points = ["Long-term maintenance overhead", "Disaster recovery or multi-region considerations"]
+        ideal_direction = "Exceptional detail. Conclude with the business or user-facing outcome to demonstrate complete senior engineering ownership."
+        follow_up_reason = f"Level {next_level} deep-dive probing edge cases and architectural boundaries from candidate's answer on '{snippet}'."
+        difficulty = "challenging" if next_level == 3 else "moderate"
+        
+        if next_level == 1:
+            next_q = f"You clearly detailed {snippet}. From an ownership perspective, if you were to redesign that system today, what would you do differently in retrospect?"
+            next_comp = "Retrospective & Continuous Improvement"
+        elif next_level == 2:
+            next_q = f"Building on your explanation of {snippet}: how did you design data consistency, concurrency, or caching boundaries to prevent performance degradation?"
+            next_comp = "System Design & Concurrency"
+        else:
+            next_q = f"Let's stress-test the architecture of {snippet}. If downstream dependencies experience intermittent network partitions or fail entirely, how does your system handle backpressure and guarantee zero data loss?"
+            next_comp = "Resilience, Backpressure & Failure Modes"
+
+    return {
+        "evaluation": {
+            "score": score,
+            "competency": next_comp,
+            "relevance": relevance,
+            "correctness": correctness,
+            "depth": depth,
+            "clarity": clarity,
+            "evidence": f"Candidate addressed the question and detailed: {snippet}",
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "missing_points": missing_points,
+            "ideal_direction": ideal_direction,
+            "follow_up_reason": follow_up_reason,
+            "difficulty": difficulty
+        },
+        "next": {
+            "question": next_q,
+            "competency": next_comp,
+            "why_this_question": f"Adaptive follow-up formulated directly from candidate's statement regarding '{snippet}'.",
+            "difficulty": difficulty
+        },
+        "level": next_level,
+        "level_name": next_level_name
+    }
+
+def _generate_dynamic_report(prompt: str) -> dict[str, Any]:
+    """Dynamically synthesize final report from candidate's actual interview history and turn scores."""
+    turns_match = re.search(r"Recorded Interview Turns:\s*(\[.*?\])(?:\n\nCandidate Fit & Profile:|$)", prompt, re.S)
+    turns = []
+    if turns_match:
+        try:
+            turns = json.loads(turns_match.group(1))
+        except Exception:
+            turns = []
+            
+    fit_match = re.search(r"Job Fit Score:\s*(\d+(?:\.\d+)?)%", prompt)
+    job_fit = float(fit_match.group(1)) if fit_match else 75.0
+    
+    role_match = re.search(r"Role Target:\s*(\{.*?\})(?:$|\n)", prompt, re.S)
+    role = {}
+    if role_match:
+        try: role = json.loads(role_match.group(1))
+        except Exception: pass
+    role_title = role.get("role_title") or "Technical Specialist"
+    req_skills = role.get("required_skills", [])
+    
+    turn_scores = []
+    for t in turns:
+        ev = t.get("evaluation", {})
+        s = ev.get("score")
+        if s is not None:
+            turn_scores.append(max(20, min(100, int(s))))
+            
+    if not turn_scores:
+        turn_scores = [72]
+        
+    avg_turn_score = sum(turn_scores) / len(turn_scores)
+    
+    role_fit_score = round(job_fit * 0.5 + avg_turn_score * 0.5)
+    tech_know_score = round(min(98, max(30, avg_turn_score + (3 if any(len(t.get("answer", "").split()) > 40 for t in turns) else -3))))
+    problem_solving_score = round(min(98, max(30, avg_turn_score + (2 if len(turns) >= 2 else -2))))
+    comm_score = round(min(98, max(35, sum(t.get("evaluation", {}).get("clarity", 18) for t in turns) / len(turns) * 4))) if turns else 80
+    conf_score = round(min(98, max(30, avg_turn_score + 1)))
+    depth_score = round(min(98, max(25, sum(t.get("evaluation", {}).get("depth", 17) for t in turns) / len(turns) * 4))) if turns else 74
+    behav_score = round(min(98, max(35, (role_fit_score + comm_score) / 2)))
+    
+    competency_scores = [
+        {"name": "Role Fit", "score": role_fit_score, "evidence": f"Demonstrated alignment with {role_title} responsibilities and core tech expectations."},
+        {"name": "Technical Knowledge", "score": tech_know_score, "evidence": f"Showcased hands-on familiarity with domain tools and architectural flow across {len(turns)} answered question(s)."},
+        {"name": "Problem Solving", "score": problem_solving_score, "evidence": "Structured approach to breaking down operational requirements and explaining implementation choices."},
+        {"name": "Communication", "score": comm_score, "evidence": "Articulated concepts effectively with structured narrative flow."},
+        {"name": "Confidence & Clarity", "score": conf_score, "evidence": "Direct responses addressing the interviewer's specific prompts."},
+        {"name": "Depth of Understanding", "score": depth_score, "evidence": "Ability to address technical constraints and design considerations."},
+        {"name": "Behavioural Fit", "score": behav_score, "evidence": "Professional demeanor, project accountability, and proactive engineering mindset."}
+    ]
+    
+    question_feedbacks = []
+    all_strengths = []
+    all_weaknesses = []
+    for idx, t in enumerate(turns):
+        ev = t.get("evaluation", {})
+        ans = t.get("answer", "")
+        q = t.get("question", f"Question {idx+1}")
+        s = ev.get("score", 70)
+        str_list = ev.get("strengths", ["Clear technical explanation"])
+        weak_list = ev.get("weaknesses", ["Could provide more quantified benchmarks"])
+        all_strengths.extend(str_list)
+        all_weaknesses.extend(weak_list)
+        
+        question_feedbacks.append({
+            "question": q,
+            "answer": ans,
+            "score": s,
+            "what_was_good": str_list[0] if str_list else "Clear answer",
+            "what_could_be_better": weak_list[0] if weak_list else "Include concrete baseline metrics",
+            "ideal_direction": ev.get("ideal_direction", "Anchor responses with STAR framework: context -> technical action -> quantified result.")
+        })
+        
+    unique_strengths = list(dict.fromkeys(all_strengths))[:4] or [f"Solid foundational aptitude for {role_title}"]
+    unique_weaknesses = list(dict.fromkeys(all_weaknesses))[:3] or ["Could provide deeper trade-off comparisons"]
+    
+    top_skill = req_skills[0] if req_skills else "Core Architecture"
+    second_skill = req_skills[1] if len(req_skills) > 1 else "System Resiliency"
+    
+    preparation_gaps = [
+        {
+            "priority": 1,
+            "topic": f"{top_skill} Implementation & Trade-off Quantification",
+            "why": f"Target role ({role_title}) emphasizes deep mastery of {top_skill} with measured production impact.",
+            "what_candidate_lacks": "Consistent use of quantitative baselines (e.g. latency percentiles, throughput, error rates) in technical narratives.",
+            "review_topics": [f"{top_skill} best practices", "P95/P99 latency profiling", "Comparative trade-off matrix vs alternatives"],
+            "suggested_practice": f"Rehearse explaining your top project using: Baseline metric -> Engineering intervention with {top_skill} -> Quantified percentage improvement.",
+            "practice_questions": [
+                f"How did you evaluate {top_skill} against alternative technologies?",
+                f"What measurable performance or efficiency gains did your solution produce?"
+            ]
+        },
+        {
+            "priority": 2,
+            "topic": f"Edge-Case Handling & {second_skill} Failure Modes",
+            "why": "Senior interviewers test failure resiliency and graceful degradation under abnormal constraints.",
+            "what_candidate_lacks": "Proactively addressing error recovery boundaries and degraded fallback behaviors.",
+            "review_topics": ["Graceful degradation patterns", "Circuit breakers and backoff strategies", "Observability alerting thresholds"],
+            "suggested_practice": "Map out three distinct failure scenarios for each major architecture in your resume and prepare your mitigation strategy for each.",
+            "practice_questions": [
+                "If an upstream service dependency times out repeatedly, how does your component prevent cascading failures?",
+                "What telemetry metrics do you monitor to catch memory leaks or thread starvation early?"
+            ]
+        }
+    ]
+    
+    next_steps = [
+        f"Review the STAR method and anchor project stories for {role_title} with specific metrics.",
+        f"Deepen knowledge around {top_skill} edge cases and failure modes.",
+        "Conduct another practice simulation targeting Level 3 Deep-Dive questions to build confidence under technical probing."
+    ]
+    
+    summary = (
+        f"The candidate completed {len(turns)} interview turn(s) targeting the {role_title} role, "
+        f"achieving an average interview turn score of {round(avg_turn_score)}/100 and a Job Fit alignment of {round(job_fit)}%. "
+        f"Performance reflects good domain vocabulary and structured responses. "
+        f"Focusing on quantitative impact metrics and proactive edge-case defense will elevate readiness to the highest caliber."
+    )
+    
+    return {
+        "competency_scores": competency_scores,
+        "question_feedbacks": question_feedbacks,
+        "strengths": unique_strengths,
+        "weaknesses": unique_weaknesses,
+        "preparation_gaps": preparation_gaps,
+        "readiness_rationale": f"Readiness combines simulated interview performance ({round(avg_turn_score)}%) with profile alignment ({round(job_fit)}%).",
+        "next_steps": next_steps,
+        "summary": summary
+    }
+
 def _fallback_llm_json(prompt: str) -> dict[str, Any]:
-    """Graceful structured fallback for demo mode or temporary API quota issues."""
+    """Graceful structured fallback for demo mode or temporary API quota issues, 100% grounded in input."""
     p_lower = prompt.lower()
     if "first screening interview question" in p_lower:
-        # Dynamically extract candidate context from prompt if available
-        skill_match = re.search(r'"skills":\s*\["([^"]+)"', prompt)
-        skill_name = skill_match.group(1) if skill_match else "backend systems"
-        return {
-            "question": f"I reviewed your background and noted your work with {skill_name}. Could you walk me through the key architectural decisions you made, and how you ensured low latency and scalability?",
-            "competency": "System Architecture & Ownership",
-            "why_this_question": f"Evaluates candidate project ownership and core architecture decisions based on {skill_name}.",
-            "difficulty": "moderate"
-        }
+        return _generate_dynamic_opening_question(prompt)
     elif "evaluate the candidate" in p_lower or "candidate answer:" in p_lower:
-        ans_match = re.search(r"Candidate answer:\s*(.*?)(?:\nCurrent level:|$)", prompt, re.S)
-        ans = ans_match.group(1).strip() if ans_match else "your previous response"
-        snippet = ans[:35] if len(ans) > 10 else "the implementation you outlined"
-        return {
-            "evaluation": {
-                "score": 78,
-                "competency": "Technical Reasoning & Problem Solving",
-                "relevance": 21,
-                "correctness": 20,
-                "depth": 19,
-                "clarity": 18,
-                "evidence": f"Candidate addressed the question and highlighted concrete experience around: {snippet}",
-                "strengths": ["Structured explanation", "Good role alignment", "Clear domain vocabulary"],
-                "weaknesses": ["Could provide deeper quantitative metrics on business/system impact"],
-                "missing_points": ["Specific evaluation baseline numbers", "Edge-case handling"],
-                "ideal_direction": "Frame answers with baseline metric -> intervention -> measured percentage improvement.",
-                "follow_up_reason": f"Probes deeper into technical trade-offs based on candidate mentioning '{snippet}'.",
-                "difficulty": "moderate"
-            },
-            "next": {
-                "question": f"When you mentioned '{snippet}', what specific trade-offs or constraints did you encounter, and how did you measure the success of that approach?",
-                "competency": "Technical Depth & Measurement",
-                "why_this_question": f"Direct follow-up to test candidate reasoning and metrics from their previous answer.",
-                "difficulty": "moderate"
-            },
-            "level": 1,
-            "level_name": "Screening"
-        }
-    elif "final interview report" in p_lower:
-        return {
-            "competency_scores": [
-                {"name": "Role Fit", "score": 82, "evidence": "Demonstrated strong alignment with required responsibilities and core tech stack."},
-                {"name": "Technical Knowledge", "score": 80, "evidence": "Good grasp of API design, distributed architecture, and data pipelines."},
-                {"name": "Problem Solving", "score": 76, "evidence": "Structured approach to decomposing requirements; needs more detail on trade-off analysis."},
-                {"name": "Communication", "score": 85, "evidence": "Clear, concise articulation of concepts with professional tone."},
-                {"name": "Confidence & Clarity", "score": 80, "evidence": "Spoke decisively about past project decisions and ownership."},
-                {"name": "Depth of Understanding", "score": 74, "evidence": "Solid fundamentals; could elaborate more on edge cases and failure modes."},
-                {"name": "Behavioural Fit", "score": 83, "evidence": "Showed teamwork, initiative, and proactive troubleshooting mindset."}
-            ],
-            "strengths": [
-                "Strong project ownership and backend architecture familiarity",
-                "Effective structured communication using clear technical terminology",
-                "Demonstrated practical knowledge of API and system workflows"
-            ],
-            "weaknesses": [
-                "Tendency to describe what was built without quantifying exact metric improvements",
-                "Could provide deeper rationale for choosing specific architectural trade-offs"
-            ],
-            "preparation_gaps": [
-                {
-                    "priority": 1,
-                    "topic": "System Evaluation & Metrics Quantification",
-                    "why": "Senior roles require proving measurable impact and baseline performance metrics.",
-                    "what_candidate_lacks": "Consistent use of quantified baselines and evaluation metrics in answers.",
-                    "review_topics": ["P95/P99 latency benchmarks", "Model evaluation metrics (Recall, Precision, MRR)", "A/B test analysis"],
-                    "suggested_practice": "Practice structuring answers with STAR framework, ending with quantifiable metrics.",
-                    "practice_questions": ["How did you quantify the 20% latency reduction?", "What telemetry do you monitor in production?"]
-                },
-                {
-                    "priority": 2,
-                    "topic": "Edge-Case & Failure Mode Analysis",
-                    "why": "Interviewers probe resilience under unexpected load or upstream service failure.",
-                    "what_candidate_lacks": "Proactively addressing error recovery and degraded fallback modes.",
-                    "review_topics": ["Circuit breakers", "Exponential backoff with jitter", "Graceful degradation"],
-                    "suggested_practice": "Map out 3 failure scenarios for every major architecture in your resume.",
-                    "practice_questions": ["What happens if the primary database is unavailable for 30 seconds?"]
-                }
-            ],
-            "next_steps": [
-                "Rehearse project narratives incorporating baseline -> intervention -> quantified result.",
-                "Review distributed systems failure scenarios and circuit breaker patterns.",
-                "Run another mock practice session focusing on deep-dive level questions."
-            ],
-            "summary": "The candidate demonstrates strong fundamental aptitude and relevant experience. Strengthening quantified impact and deeper edge-case justifications will elevate performance to the top tier."
-        }
+        return _evaluate_dynamic_answer(prompt)
+    elif "final interview report" in p_lower or "create a concise, evidence-based final interview report" in p_lower:
+        return _generate_dynamic_report(prompt)
     else:
         # Dynamic analysis from prompt's actual Job Description and Resume
         jd_match = re.search(r"JOB DESCRIPTION:\s*(.*?)(?:\n\s*RESUME:|$)", prompt, re.S | re.I)

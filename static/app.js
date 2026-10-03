@@ -197,6 +197,7 @@ function showView(viewId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   if (viewId === 'interviewView') {
+    startMeetingTimer();
     const noSess = $('#noSessionBanner');
     if (noSess) {
       if (!state.session) {
@@ -205,6 +206,8 @@ function showView(viewId) {
         noSess.classList.add('hidden');
       }
     }
+  } else {
+    stopMeetingTimer();
   }
 
   if (state.isCameraActive) {
@@ -357,6 +360,22 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#presetFullStack').addEventListener('click', () => loadPreset('fullStack'));
   $('#presetProductMgr').addEventListener('click', () => loadPreset('productMgr'));
 
+  // Clear All Inputs button
+  if ($('#clearInputsBtn')) {
+    $('#clearInputsBtn').addEventListener('click', () => {
+      $('#jd').value = '';
+      $('#resume').value = '';
+      $('#jdUploadStatus').textContent = 'No file loaded';
+      $('#resumeUploadStatus').textContent = 'No file loaded';
+      updateCharCounts();
+      clearError('#setupError');
+      const prev = $('#candidateLivePreviewCard');
+      if (prev) prev.classList.add('hidden');
+      state.analysis = null;
+      state.session = null;
+    });
+  }
+
   // Character counts
   $('#jd').addEventListener('input', updateCharCounts);
   $('#resume').addEventListener('input', updateCharCounts);
@@ -416,6 +435,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // Finish Interview
   $('#btnFinishInterview').addEventListener('click', generateFinalReport);
 
+  // Meeting Dock Buttons
+  if ($('#dockMicToggle')) {
+    $('#dockMicToggle').addEventListener('click', () => {
+      $('#micBtn').click();
+    });
+  }
+  if ($('#dockCamToggle')) {
+    $('#dockCamToggle').addEventListener('click', () => {
+      $('#toggleCamBtn').click();
+    });
+  }
+  if ($('#dockCcToggle')) {
+    $('#dockCcToggle').addEventListener('click', () => {
+      const cc = $('#liveCcConsole');
+      const btn = $('#dockCcToggle');
+      if (cc) cc.classList.toggle('hidden');
+      if (btn) btn.classList.toggle('active');
+      const lbl = $('#dockCcLabel');
+      if (lbl) lbl.textContent = cc && cc.classList.contains('hidden') ? 'CC: OFF' : 'CC: ON';
+    });
+  }
+  if ($('#dockNotesToggle')) {
+    $('#dockNotesToggle').addEventListener('click', () => {
+      const ch = $('#toggleCheatsheetBtn');
+      if (ch) ch.click();
+    });
+  }
+  if ($('#dockEndCallBtn')) {
+    $('#dockEndCallBtn').addEventListener('click', () => {
+      $('#btnFinishInterview').click();
+    });
+  }
+
   // Candidate Video Preview & Camera Controls
   if ($('#setupToggleCamBtn')) $('#setupToggleCamBtn').addEventListener('click', () => toggleCamera('setup'));
   if ($('#setupVirtualCamBtn')) $('#setupVirtualCamBtn').addEventListener('click', () => toggleVirtualCamera('setup'));
@@ -464,9 +516,9 @@ function extractCandidatePreview(text) {
   
   // 1. Candidate Name
   let name = '';
-  const nameMatch = text.match(/^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})/mi);
+  const nameMatch = text.match(/^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})(?:\r|\n|$)/mi);
   if (nameMatch) {
-    name = nameMatch[1].trim();
+    name = nameMatch[1].split('\n')[0].trim();
   } else {
     for (const l of lines.slice(0, 5)) {
       const lower = l.toLowerCase();
@@ -498,7 +550,7 @@ function extractCandidatePreview(text) {
       for (const p of parts) {
         const pClean = p.trim();
         if (['engineer', 'developer', 'architect', 'manager', 'lead', 'specialist', 'scientist', 'designer', 'analyst', 'intern'].some(k => pClean.toLowerCase().includes(k))) {
-          headline = pClean;
+          headline = pClean.replace(/^(?:headline|title|role|position):\s*/i, '').trim() || pClean;
           break;
         }
       }
@@ -950,6 +1002,29 @@ async function startInterviewFlow() {
   }
 }
 
+let meetingTimerInterval = null;
+let meetingSeconds = 0;
+
+function startMeetingTimer() {
+  stopMeetingTimer();
+  meetingSeconds = 0;
+  const timerEl = $('#meetingCallTimer');
+  if (timerEl) timerEl.textContent = '⏱️ 00:00';
+  meetingTimerInterval = setInterval(() => {
+    meetingSeconds++;
+    const m = String(Math.floor(meetingSeconds / 60)).padStart(2, '0');
+    const s = String(meetingSeconds % 60).padStart(2, '0');
+    if (timerEl) timerEl.textContent = `⏱️ ${m}:${s}`;
+  }, 1000);
+}
+
+function stopMeetingTimer() {
+  if (meetingTimerInterval) {
+    clearInterval(meetingTimerInterval);
+    meetingTimerInterval = null;
+  }
+}
+
 // Automatically analyze profile (if needed) and formulate opening questions
 async function ensureAndStartInterview() {
   if (state.session) {
@@ -965,11 +1040,13 @@ async function ensureAndStartInterview() {
   let jd = ($('#jd')?.value || '').trim();
   let resume = ($('#resume')?.value || '').trim();
 
-  // If inputs are empty, load the default AI / RAG Engineer preset immediately!
-  if (jd.length < 40 || resume.length < 40) {
-    loadPreset('aiEng');
-    jd = $('#jd').value.trim();
-    resume = $('#resume').value.trim();
+  // Validate user inputs strictly: do NOT auto-inject canned presets!
+  if (jd.length < 25 || resume.length < 25) {
+    showError('#setupError', 'Please enter your Job Description and Candidate Resume (or select one of the Quick Presets above) to start your customized interview.');
+    showView('setupView');
+    const jdEl = $('#jd');
+    if (jdEl) jdEl.focus();
+    return;
   }
 
   busy(true, 'Preparing Interview Session...', 'Analyzing role requirements and formulating candidate-specific opening question...');
@@ -1000,6 +1077,12 @@ function setInterviewQuestion(q) {
   $('#questionCompetency').textContent = q.competency || 'Role Fit & Ownership';
   $('#whyQuestionText').textContent = q.why_this_question ? `Why this question: ${q.why_this_question}` : 'Personalized to your resume and target role.';
 
+  // Update Live Closed-Captions subtitle ticker
+  const ccText = $('#liveCcText');
+  if (ccText) ccText.textContent = `"${q.question}"`;
+  const ccSpeaker = $('#ccSpeakerLabel');
+  if (ccSpeaker) ccSpeaker.textContent = 'Interviewer (Dr. Elena Vance)';
+
   // Level & Turn Pills
   const lvl = q.level || 1;
   const levelNames = ['', 'SCREENING', 'COMPETENCY', 'DEEP-DIVE'];
@@ -1024,7 +1107,7 @@ function setInterviewQuestion(q) {
   updateCandidateHud();
 }
 
-// TTS Speech Synthesis
+// TTS Speech Synthesis with Equalizer Bar Animation
 function speakQuestionText() {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
@@ -1034,19 +1117,32 @@ function speakQuestionText() {
   u.rate = 0.98;
   u.pitch = 1.0;
 
+  const eq = $('#interviewerEqualizer');
+  const badge = $('#evaluatorNeuralBadge');
+
   u.onstart = () => {
-    $('#aiStatusText').textContent = 'Interviewer is speaking...';
+    $('#aiStatusText').textContent = 'Dr. Vance is speaking...';
     $('#aiOrb').classList.add('speaking');
+    if (eq) eq.classList.add('active');
+    if (badge) { badge.textContent = '● SPEAKING'; badge.style.color = '#34d399'; }
+    const ccText = $('#liveCcText');
+    if (ccText) ccText.textContent = `"${text}"`;
+    const ccSpeaker = $('#ccSpeakerLabel');
+    if (ccSpeaker) ccSpeaker.textContent = 'Interviewer (Dr. Elena Vance)';
   };
 
   u.onend = () => {
     $('#aiStatusText').textContent = 'Listening for your answer';
     $('#aiOrb').classList.remove('speaking');
+    if (eq) eq.classList.remove('active');
+    if (badge) { badge.textContent = '● NEURAL STREAM'; badge.style.color = '#6ee7b7'; }
   };
 
   u.onerror = () => {
     $('#aiStatusText').textContent = 'Ready for candidate response';
     $('#aiOrb').classList.remove('speaking');
+    if (eq) eq.classList.remove('active');
+    if (badge) { badge.textContent = '● NEURAL STREAM'; badge.style.color = '#6ee7b7'; }
   };
 
   window.speechSynthesis.speak(u);
@@ -1058,6 +1154,10 @@ function stopSpeech() {
   }
   $('#aiOrb').classList.remove('speaking');
   $('#aiStatusText').textContent = 'Ready';
+  const eq = $('#interviewerEqualizer');
+  if (eq) eq.classList.remove('active');
+  const badge = $('#evaluatorNeuralBadge');
+  if (badge) { badge.textContent = '● NEURAL STREAM'; badge.style.color = '#6ee7b7'; }
 }
 
 // STT: Primary Browser Web Speech API
@@ -1091,7 +1191,15 @@ function toggleSpeechRecognition() {
       $('#answerText').value = (current ? current.trim() + ' ' : '') + finalStr.trim();
     }
     
-    $('#transcriptLiveText').textContent = (($('#answerText').value + ' ' + interimStr).trim() || 'Listening...');
+    const liveTxt = (($('#answerText').value + ' ' + interimStr).trim() || 'Listening...');
+    $('#transcriptLiveText').textContent = liveTxt;
+
+    // Live Closed Captions update
+    const ccText = $('#liveCcText');
+    if (ccText) ccText.textContent = `"${liveTxt}"`;
+    const ccSpeaker = $('#ccSpeakerLabel');
+    if (ccSpeaker) ccSpeaker.textContent = 'Candidate (Live Audio)';
+
     updateLiveAnswerAnalytics();
   };
 
@@ -1114,6 +1222,12 @@ function toggleSpeechRecognition() {
   $('#sttStatusDot').classList.add('listening');
   $('#transcriptLiveText').textContent = 'Listening to your microphone...';
 
+  // Synchronize meeting dock mic toggle
+  const dockMicLbl = $('#dockMicLabel');
+  const dockMicBtn = $('#dockMicToggle');
+  if (dockMicLbl) dockMicLbl.textContent = 'Mic Active';
+  if (dockMicBtn) dockMicBtn.classList.add('active');
+
   startSpeechTimer();
   startAudioMeter();
 
@@ -1134,6 +1248,13 @@ function stopSpeechRecognition() {
   $('#micBtn').classList.remove('recording');
   $('#micBtnText').textContent = 'Start Speaking';
   $('#sttStatusDot').classList.remove('listening');
+
+  // Synchronize meeting dock mic toggle
+  const dockMicLbl = $('#dockMicLabel');
+  const dockMicBtn = $('#dockMicToggle');
+  if (dockMicLbl) dockMicLbl.textContent = 'Mic On';
+  if (dockMicBtn) dockMicBtn.classList.remove('active');
+
   stopSpeechTimer();
   stopAudioMeter();
 }
@@ -1245,6 +1366,14 @@ function updateLiveAnswerAnalytics() {
     if (matches) count += matches.length;
   });
   $('#fillerCount').textContent = count;
+
+  // Live Closed-Captions subtitle update during typing
+  if (text && !state.isRecordingSTT) {
+    const ccText = $('#liveCcText');
+    if (ccText) ccText.textContent = `"${text.slice(-140)}"`;
+    const ccSpeaker = $('#ccSpeakerLabel');
+    if (ccSpeaker) ccSpeaker.textContent = 'Candidate (Response)';
+  }
 }
 
 // ==========================================
@@ -1349,6 +1478,12 @@ function updateVideoUI(isActive, isVirtual = false) {
     if (preFrame) { preFrame.textContent = 'Centered'; preFrame.style.color = ''; }
     if (preMic) { preMic.textContent = 'Detected'; preMic.style.color = ''; }
   }
+
+  // Synchronize meeting dock camera toggle
+  const dockCamLbl = $('#dockCamLabel');
+  const dockCamBtn = $('#dockCamToggle');
+  if (dockCamLbl) dockCamLbl.textContent = isActive ? (isVirtual ? 'Cam: Virtual' : 'Cam: Live') : 'Cam Off';
+  if (dockCamBtn) dockCamBtn.classList.toggle('active', isActive);
 }
 
 async function toggleCamera(sourceView = 'setup') {
