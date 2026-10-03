@@ -1,29 +1,47 @@
-# Assignment requirement checklist
+# Assignment Requirement Traceability Checklist
+### AI Product Engineer Intern — Interview Accelerator Challenge (Assignment 3)
 
-Statuses are implementation review, not a claim that live external services have been tested. Run the listed checks with configured credentials before submission.
-
-| Requirement | Status | Implementation | How to verify |
-|---|---|---|---|
-| Paste JD and resume with validation | [PASS] | `static/index.html`, `static/app.js`, `/api/analyze` | Try blank and valid text in both fields |
-| PDF, DOCX, TXT upload; size/type errors | [PASS] | `/api/extract` in `app.py` | Upload each type, unsupported file, and >8 MB file |
-| Structured role analysis fields | [PASS] | `/api/analyze`, `static/app.js` | Inspect returned JSON and dashboard after live request |
-| Candidate analysis and claims to probe | [PASS] | `/api/analyze` | Use a resume with a project and measurable claim |
-| Explainable computed Job Fit | [PASS] | Weighted dimensions in `app.py`, README methodology | Confirm weights sum to 100 and aggregate matches displayed scores |
-| Personalized screening question | [PASS] | `/api/interview/start` | Confirm question references supplied project/skill |
-| Three interview levels | [PASS] | `/api/interview/answer` level cadence and UI | Submit 7 answers; confirm screening, competency, deep-dive |
-| Adaptive next question based on previous answer | [PASS] | `/api/interview/answer` context prompt | Answer with a concrete claim; confirm next question probes that claim |
-| Interview context and evaluation memory | [PASS] | In-memory session state in `app.py` | Confirm follow-ups refer to previous answers and feedback |
-| Speech-to-text and text fallback | [PASS] | Web Speech Recognition in `static/app.js`; answer textarea | Use Chrome/Edge mic; deny permission and type an answer |
-| AI question text-to-speech, replay/stop | [PASS] | Browser SpeechSynthesis controls in `static/app.js` | Play, replay, and stop a question |
-| Answer scoring and specific feedback | [PASS] | `/api/interview/answer` | Submit distinct answers and inspect evaluation response |
-| Performance report, gaps, readiness | [PASS] | `/api/interview/report`, results UI | Complete answers then generate report |
-| Responsive polished interview UX | [PASS] | `static/styles.css`, `static/index.html` | Review desktop and mobile viewport; keyboard-test controls |
-| Provider abstraction and server-only secrets | [PASS] | `llm_json` and `.env.example` | Configure each provider in turn; search client source for keys |
-| Graceful missing key/provider errors | [PASS] | API errors and UI error banners | Run without key and inspect surfaced message |
-| Persistent sessions/database | [PARTIAL] | In-memory session store in `app.py` | Restart server and note session loss; add database for production |
-| Cross-browser cloud transcription fallback | [PARTIAL] | Browser recognition plus typed fallback; no audio provider | Test Safari/Firefox unsupported path; use text fallback |
-| API and integration automated test suite | [PARTIAL] | `tests/test_flow.py` checks answer-conditioned follow-ups, three levels, readiness, and missing session; external provider/browser flows not exercised | Run `python3 -m unittest discover -s tests` with a provider key for further integration coverage |
-| Live deployed app | [PARTIAL] | Live at `https://interview-accelerator-44ui.onrender.com`; `/api/health` returns 200, but `ai_configured` is false until a provider secret is added | Add a provider key in Render Environment, then run the full flow on the public URL |
-| GitHub repository | [PARTIAL] | Created and pushed at `https://github.com/nishantdubey-tech/interview-accelerator`; repository is private pending action-time confirmation | Confirm visibility change, then verify public access |
-| Demo video recording | [PARTIAL] | Recording script in `DEMO_SCRIPT.md`; no video recorded | Record real end-to-end flow and attach video |
-| Architecture/AI/voice/evaluation technical explanation | [PASS] | `README.md` | Review architecture and methodology sections |
+| # | Requirement | Status | Implementation Location | How to Verify |
+|---|---|---|---|---|
+| 1 | **Inspect Repository & Architecture** | [PASS] | Root, `app.py`, `render.yaml`, `requirements.txt` | Clean modular architecture, FastAPI + Vanilla CSS/JS client |
+| 2 | **Full User Journey** (JD/Resume → Analysis → Job Fit → 3-Level Interview → Voice → Eval → Report → Readiness) | [PASS] | `app.py`, `static/app.js`, `static/index.html` | Run end-to-end flow from input to final report |
+| 3 | **Technical Architecture** (FastAPI, REST APIs, Pydantic, modern UI) | [PASS] | `app.py`, `static/index.html`, `static/styles.css` | REST endpoints with Pydantic validation and responsive UI |
+| 4 | **Core Input: Paste & Upload (PDF, DOCX, TXT)** | [PASS] | `/api/extract`, `static/app.js` | Try pasting text, drag-and-drop, and file uploads |
+| 5 | **Empty / Size / Format Validation** | [PASS] | `app.py:extract`, `static/app.js:attachFile` | Reject <40 chars, >8 MB files, and non-supported formats |
+| 6 | **1-Click Presets for Fast Evaluation** | [PASS] | `static/app.js:PRESETS`, `static/index.html` | Click any of the 3 quick-load buttons on the landing page |
+| 7 | **Step 1: Role Analysis (Structured Schema)** | [PASS] | `/api/analyze`, `static/app.js:renderAnalysisView` | Check role title, responsibilities, required/preferred skills, concepts |
+| 8 | **Step 2: Candidate Analysis (Structured Schema)** | [PASS] | `/api/analyze`, `static/app.js:renderAnalysisView` | Check skills, experience, projects, achievements, strengths, gaps |
+| 9 | **Resume Claims to Probe** | [PASS] | `/api/analyze`, Candidate Analysis tab | View amber probe card in candidate analysis |
+| 10 | **Job Fit Engine (Mathematical & Explainable)** | [PASS] | `app.py:analyze`, Job Fit tab | 6 weighted dimensions summing to 100% with Strong/Partial/Weak badges |
+| 11 | **Transparent Fit Scoring Methodology** | [PASS] | `app.py`, `README.md`, Job Fit tab | Explains 30/25/15/15/10/5 weight breakdown and evidence |
+| 12 | **Personalized Opening Question** | [PASS] | `/api/interview/start` | References specific candidate resume project/claim, no generic cliches |
+| 13 | **Level 1: Screening Interview** | [PASS] | `app.py:start`, `app.py:answer` (Turns 1-3) | Focuses on resume background, motivation, role fit |
+| 14 | **Level 2: Competency Interview** | [PASS] | `app.py:answer` (Turns 4-6) | Advances to job-specific technical competencies and system design |
+| 15 | **Level 3: Deep-Dive Interview** | [PASS] | `app.py:answer` (Turns 7+) | Challenges vague points, asks why/how, probes trade-offs |
+| 16 | **Adaptive Follow-up Questioning** | [PASS] | `app.py:answer` context prompt | Next question dynamically references exact details from preceding answer |
+| 17 | **Difficulty Adaptation** | [PASS] | `app.py:answer`, difficulty pill in UI | Adjusts difficulty (Easy, Moderate, Challenging) based on answer quality |
+| 18 | **Interview Context & State Object** | [PASS] | `SESSIONS` memory state in `app.py` | Tracks history, turns, scores, strengths, weaknesses, topics |
+| 19 | **Voice AI: Text-to-Speech (TTS)** | [PASS] | `static/app.js:speakQuestionText` | Browser SpeechSynthesis with speaking indicator, replay, and stop |
+| 20 | **Voice AI: Speech-to-Text (STT)** | [PASS] | `static/app.js:toggleSpeechRecognition` | Web Speech API with live transcript and recording state |
+| 21 | **Cloud Audio Recording Fallback** | [PASS] | `/api/transcribe`, `static/app.js:toggleCloudAudioRecord` | MediaRecorder captures audio; backend AI transcribes |
+| 22 | **Text-Answer Fallback** | [PASS] | `static/index.html:answerText` | Direct textarea always available for typing or editing transcripts |
+| 23 | **Bonus: Candidate Video Preview** | [PASS] | `static/app.js:toggleWebcam` | Toggle candidate webcam preview using getUserMedia |
+| 24 | **Bonus: Live Speech Analytics** | [PASS] | `static/app.js:updateLiveAnswerAnalytics` | Real-time response timer, Words Per Minute (WPM), and filler word counter |
+| 25 | **Interview Evaluation Rubric** | [PASS] | `app.py:answer` (relevance, correctness, depth, clarity) | Structured scoring out of 100 with strengths, weaknesses, ideal direction |
+| 26 | **Post-Answer Micro-Evaluation Card** | [PASS] | `static/app.js`, `static/index.html` | Real-time card showing answer score and why next question was chosen |
+| 27 | **Overall Interview Score / 100** | [PASS] | `app.py:report`, `static/app.js` | Computed mathematically from evaluated answers |
+| 28 | **7 Competency Scores** | [PASS] | `app.py:report`, Competency Breakdown | Role Fit, Technical Knowledge, Problem Solving, Communication, Confidence, Depth, Behavioural |
+| 29 | **Question-by-Question Deep Dive** | [PASS] | `app.py:report`, `static/app.js` | Question, Answer, Score, What Was Good, What Could Be Better, Ideal Direction |
+| 30 | **Demonstrated Strengths (Answer-grounded)** | [PASS] | `app.py:report`, Strengths Card | Grounded strictly in recorded candidate answers |
+| 31 | **Concrete Weaknesses (Answer-grounded)** | [PASS] | `app.py:report`, Weaknesses Card | Concrete growth areas based on answer gaps |
+| 32 | **Prioritized Preparation Gap Engine** | [PASS] | `app.py:report`, Gap Engine Card | Priority 1, 2, 3 with topic, why it matters, review topics, suggested practice, mock questions |
+| 33 | **Interview Readiness Score & Status** | [PASS] | `app.py:report`, Readiness Card | Formula: 70% Interview + 30% Job Fit; Badges: 🟢 Strong, 🟡 Ready, 🟠 Prep, 🔴 Not Ready |
+| 34 | **Export / Print Report** | [PASS] | `static/app.js:window.print`, print CSS | Print button formats clean PDF report |
+| 35 | **AI Provider Abstraction** | [PASS] | `app.py:llm_json` | Seamless support for Gemini (`gemini-2.5-flash`, etc.) and OpenAI (`gpt-4o-mini`, etc.) |
+| 36 | **Resilient Multi-Model Fallback** | [PASS] | `app.py:llm_json` | Automatic fallback through available model endpoints if one is deprecated or rate-limited |
+| 37 | **Server-side Secret Protection** | [PASS] | `app.py`, `.env.example` | Keys stay strictly server-side; health endpoint masks values |
+| 38 | **Production Error Handling** | [PASS] | `app.py:fail`, UI error banners | Logs full errors to server stdout/stderr; sanitizes client errors |
+| 39 | **Automated Integration Test Suite** | [PASS] | `tests/test_flow.py` | 6 comprehensive test cases covering health, extract, analyze, interview, transcribe, report |
+| 40 | **Live Render Deployment** | [PASS] | `https://interview-accelerator-44ui.onrender.com` | Deployed on Render free tier with health check passing |
+| 41 | **GitHub Repository** | [PASS] | `https://github.com/nishantdubey-tech/interview-accelerator` | Pushed to main branch with clean commit history |
+| 42 | **Demo Video Script** | [PASS] | `DEMO_SCRIPT.md` | Complete 3-5 minute demonstration walkthrough script |

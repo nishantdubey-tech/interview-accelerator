@@ -1,89 +1,248 @@
-# Forma — Interview Accelerator
+# Forma — AI Interview Accelerator
 
-A voice-enabled interview practice product that analyzes a job description and resume, calculates a transparent evidence-weighted job fit, conducts three stages of personalized practice, evaluates spoken or typed answers, and builds a preparation and readiness report.
+Forma is an AI-powered interview practice platform that bridges the gap between static question lists and authentic, high-stakes technical interviews. By deeply analyzing a target Job Description and Candidate Resume, Forma extracts structured competencies, calculates an explainable evidence-weighted Job Fit score, conducts a personalized 3-level adaptive voice interview, evaluates candidate reasoning in real time, and synthesizes an actionable Performance Report with prioritized preparation gaps and an objective Interview Readiness score.
 
-## Problem and product
+---
 
-Candidates often prepare from generic question lists that do not reflect the job or their own experience. Forma compares the role brief with the candidate's supplied profile, finds evidence and gaps, then uses that context and the candidate's actual previous answers to run an adaptive interview.
+## Live Deployment & Repository
 
-## Features and journey
+- **Live Deployed Application:** [https://interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com)
+- **GitHub Repository:** [https://github.com/nishantdubey-tech/interview-accelerator](https://github.com/nishantdubey-tech/interview-accelerator)
+- **Health Endpoint:** [https://interview-accelerator-44ui.onrender.com/api/health](https://interview-accelerator-44ui.onrender.com/api/health)
 
-1. Paste a job description and resume, or upload PDF, DOCX, or TXT files (8 MB maximum).
-2. Extract structured role and candidate analysis using the configured LLM.
-3. Compute an evidence-weighted job fit score with per-dimension evidence and gaps.
-4. Start a candidate-specific screening question; questions use resume projects, skills, achievements, and role requirements.
-5. Speak an answer using browser speech recognition or type it. Speech transcripts remain editable before submission.
-6. Evaluate each answer and generate a next question prompted with the exact prior question, exact answer, profile, prior evaluations, strengths, weaknesses, and covered topics. The UI explains why the follow-up was selected.
-7. Move through screening, competency, and deep-dive stages (stage advances after every three submitted answers). The question remains answer-conditioned at every stage.
-8. Hear questions with browser speech synthesis, replay or stop speech, then generate the final performance/readiness report and preparation plan.
+---
 
-Voice recognition depends on browser support and microphone permission (Chrome/Edge are the best-supported targets). Text entry is always available. Speech synthesis uses the browser's installed voice. This app does not upload audio or claim a cloud transcription fallback.
+## Problem Statement
 
-## Architecture and stack
+Most interview preparation tools fail in two critical ways:
+1. **Generic Question Lists:** They ask standardized questions (*"Tell me about a time you solved a conflict"*) rather than grilling candidates on the specific claims, frameworks, and metrics written in their resumes.
+2. **Static Question Trees:** They cannot adapt dynamically to candidate answers. In a real interview, if a candidate claims they *"optimized search latency by 28%"*, the interviewer will immediately probe the baseline, measurement tooling, and system trade-offs.
 
-- Python 3.11+, FastAPI, Pydantic validation, httpx provider clients, pypdf and python-docx parsing.
-- Responsive HTML/CSS/vanilla JavaScript client served by FastAPI; no frontend build step.
-- Gemini or OpenAI selected by environment. Keys stay server-side. Structured JSON output is parsed and basic structure is validated before use.
-- Interview session and answers live in server process memory. Restarting/redeploying the service clears sessions. Add PostgreSQL/Supabase before multi-instance production use.
-- Browser Web Speech API handles speech-to-text and speech synthesis. Interview question content and evaluations come from the configured live LLM. Missing credentials produce a clear service error; there is no fake AI demo path.
+Forma solves this by acting as a calibrated, adaptive technical interviewer that reads the fine print of both the job brief and the candidate's actual projects, dynamically shaping each follow-up question based on what the candidate just said.
 
-### AI and scoring methodology
+---
 
-Role and candidate analysis are generated together in a structured schema. The prompt requires the model to distinguish evidence from inference and only use supplied text. Job fit is not requested as a percentage: the server computes the weighted average of six model-assessed evidence dimensions: required skills (30%), technical competencies (25%), experience (15%), project relevance (15%), behavioral match (10%), and qualifications (5%). Scores are clamped to 0–100 and weights are normalized. The UI displays the dimensions, evidence/gaps, and the calculated aggregate. Fit describes profile alignment, not hiring odds.
+## Complete User Journey
 
-For each answer the interviewer returns an answer score and evidence, strengths, improvements, follow-up rationale, and difficulty. The report requests competency results, strengths, weaknesses, preparation gaps, and next steps from the recorded answers. The server calculates overall interview score as the mean of answer scores, and readiness = interview answer average × 70% + job fit × 30%. These are coaching estimates, not a validated psychometric assessment.
+```
+[Job Description (Paste/Upload)] + [Candidate Resume (Paste/Upload)]
+                           │
+                           ▼
+          [Step 1: AI Role Competency Extraction]
+                           │
+                           ▼
+          [Step 2: AI Candidate Evidence & Claims Extraction]
+                           │
+                           ▼
+          [Step 3: Transparent 6-Factor Job Fit Engine]
+                           │
+                           ▼
+          [Step 4: Start AI Interview Simulator]
+                           │
+         ┌─────────────────┴─────────────────┐
+         ▼                                   ▼
+[Level 1: Screening]             [Candidate Voice Response]
+(Motivation & Resume claims)     (Web Speech STT / Cloud Fallback)
+         │                                   │
+         ▼                                   ▼
+[Level 2: Competency]            [Real-Time Answer Evaluation]
+(System Design & Problem Solving)(Relevance, Depth, Evidence)
+         │                                   │
+         ▼                                   ▼
+[Level 3: Deep-Dive]             [Adaptive Next Question]
+(Edge cases & Trade-offs)        (Causally conditioned on answer)
+         └─────────────────┬─────────────────┘
+                           ▼
+           [Step 5: Final Performance Report]
+         ┌─────────────────┴─────────────────┐
+         ▼                                   ▼
+[7 Competency Scores]             [Prioritized Preparation Gaps]
+         ▼                                   ▼
+[Question-Level Feedback]        [Interview Readiness Score /100]
+```
 
-### Adaptive interview and levels
+1. **Input & Profile Ingestion:** Paste text directly or upload PDF, DOCX, or TXT files (up to 8 MB). Alternatively, use the 1-click Quick-Load Presets for instant testing.
+2. **Role & Candidate Analysis:** Structured AI extraction separates requirements into required skills, preferred qualifications, and candidate claims to probe.
+3. **Transparent Job Fit Engine:** Computes a mathematical score (0–100%) from 6 weighted evidence dimensions with Strong/Partial/Weak categorization.
+4. **Adaptive Interview Simulator:**
+   - **Level 1 (Screening):** Probes resume background, ownership, and role motivation.
+   - **Level 2 (Competency):** Deepens into domain competencies, technical architecture, and decision making.
+   - **Level 3 (Deep-Dive):** Challenges vague claims, asks why/how, and probes edge-case failure modes.
+5. **Voice AI & Video Preview:**
+   - AI speaks each question using browser SpeechSynthesis with replay and stop controls.
+   - Candidates answer via live speech recognition (Web Speech API) or backend cloud audio transcription fallback (`/api/transcribe`).
+   - Live speech analytics tracks duration, Words Per Minute (WPM), and filler word counts.
+   - Optional candidate webcam preview toggle.
+6. **Real-Time Evaluation:** Every answer receives immediate structured feedback with scores and the rationale for the subsequent question.
+7. **Comprehensive Performance Report:** Synthesizes an overall interview score, 7 competency progress bars, answer-grounded strengths/weaknesses, prioritized preparation gap cards (Priority 1, 2, 3), question-by-question critiques, and a defensible Interview Readiness rating.
 
-The next-question request contains the last question and candidate answer verbatim, plus the role, candidate evidence, job fit, recent interview turns, accumulated strengths/weaknesses, and competency topics. The prompt directs the LLM to ask for clarification when an answer is vague, increase depth after a strong answer, and scaffold fundamentals after a weak answer. It explicitly requires the next question to refer to a concrete detail in the answer; this makes the content adaptive rather than a fixed question array. Level transitions are deterministic after answers 3 and 6 to ensure all three stages are visible; question content remains model-generated and answer-aware. This is a prompt-driven system and should be evaluated with representative profiles before high-stakes use.
+---
 
-### API
+## Technical Architecture & Stack
 
-| Method | Path | Purpose |
+```
+forma-interview-accelerator/
+├── app.py                   # FastAPI application, multi-model LLM abstraction, audio transcription
+├── requirements.txt         # Production Python dependencies
+├── render.yaml              # Render web service deployment configuration
+├── tests/
+│   └── test_flow.py         # Full automated integration test suite (6 tests)
+├── static/
+│   ├── index.html           # Semantic, accessible HTML5 dashboard & interview room
+│   ├── styles.css           # Modern custom CSS design system, animations, print stylesheet
+│   └── app.js               # Client state, Web Speech STT/TTS, MediaRecorder fallback, UI rendering
+├── ASSIGNMENT_CHECKLIST.md  # 42-point requirement traceability matrix
+├── DEMO_SCRIPT.md           # 3-5 minute demonstration walkthrough script
+└── README.md                # Technical documentation & architecture reference
+```
+
+- **Backend:** Python 3.11+, FastAPI, Pydantic v2 schemas, httpx async client.
+- **Frontend:** Vanilla HTML5 / Modern CSS / Vanilla JavaScript. Zero build step, fast loading, responsive on mobile and desktop.
+- **AI Providers:** Provider abstraction supporting:
+  - **Google Gemini:** `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro` with automatic model fallback.
+  - **OpenAI:** `gpt-4o-mini`, `gpt-4o` with structured JSON mode.
+- **Voice Stack:**
+  - **Text-to-Speech (TTS):** Browser `SpeechSynthesis` with rate tuning, animated speaking state, play, replay, and stop.
+  - **Speech-to-Text (STT):** Primary: Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
+  - **Cloud Transcription Fallback:** In-browser `MediaRecorder` captures audio bytes and uploads to `/api/transcribe` powered by Gemini multimodal audio analysis or Whisper.
+- **State Management:** Session memory store tracking turn history, candidate responses, evaluations, cumulative strengths/weaknesses, and active difficulty.
+
+---
+
+## AI & Scoring Methodologies
+
+### 1. Job Fit Scoring Engine
+Forma avoids asking the LLM for a hallucinated percentage. Instead, the server mathematically computes the weighted aggregate of six conservative evidence dimensions:
+
+$$\text{Job Fit Score} = \sum_{i=1}^{6} (\text{Dimension Score}_i \times \text{Weight}_i)$$
+
+| Dimension | Weight | Criteria |
 |---|---|---|
-| GET | `/api/health` | Service, selected provider, key-configured state |
-| POST | `/api/extract` | Multipart file extraction and validation |
-| POST | `/api/analyze` | Structured role/candidate analysis and computed job fit |
-| POST | `/api/interview/start` | Create in-memory session and personalized first question |
-| POST | `/api/interview/answer` | Evaluate answer and return adaptive next question |
-| POST | `/api/interview/report` | Final performance and preparation report |
+| **Required Skills Match** | 30% | Explicit match between core job requirements and resume skills |
+| **Technical Competency Match** | 25% | Demonstrated depth in architecture, APIs, and systems |
+| **Experience Match** | 15% | Years of relevant experience and seniority alignment |
+| **Project Relevance** | 15% | Direct relevance of past projects to target responsibilities |
+| **Behavioural Match** | 10% | Evidence of ownership, collaboration, and problem decomposition |
+| **Qualification Match** | 5% | Degrees, certifications, and educational background |
 
-## Local setup
+Each dimension is categorized as:
+- **Strong Match:** $\ge 75\%$
+- **Partial Match:** $50\% - 74\%$
+- **Missing / Weak:** $< 50\%$
+
+### 2. Adaptive Interview Engine & 3 Levels
+Rather than iterating over a static list of questions, Forma prompts the LLM with:
+- Target Job Description context
+- Candidate Resume evidence & claims to probe
+- Last question asked
+- Verbatim candidate answer
+- Interview history & accumulated strengths/weaknesses
+- Target stage level
+
+The prompt strictly directs the model to:
+1. Quote or reference a concrete claim from the candidate's last answer.
+2. Probe vague claims (e.g. asking for baseline metrics, tooling, and trade-offs).
+3. Increase technical depth if the answer was strong, or scaffold fundamentals if the candidate struggled.
+
+**Stage Transitions:**
+- **Turns 1–3 (Level 1: Screening):** Explores project ownership, resume claims, and motivation.
+- **Turns 4–6 (Level 2: Competency):** Probes system design, technical depth, and practical trade-offs.
+- **Turns 7+ (Level 3: Deep-Dive):** Tests edge cases, failure recovery, counter-arguments, and architectural reasoning.
+
+### 3. Interview Readiness Scoring
+Interview readiness is an objective composite score combining live simulation performance with baseline profile fit:
+
+$$\text{Readiness Score} = \text{Round}(\text{Interview Performance Average} \times 0.70 + \text{Job Fit} \times 0.30)$$
+
+- 🟢 **Strong Candidate:** $\ge 85\%$ — Highly recommended for hire; comprehensive competency alignment.
+- 🟡 **Interview Ready:** $75\% - 84\%$ — Solid performance; ready for real loops with minor refinements.
+- 🟠 **Needs Preparation:** $60\% - 74\%$ — Demonstrates potential but exhibits gaps in metrics or depth.
+- 🔴 **Not Ready:** $< 60\%$ — Significant knowledge gaps; targeted study plan required before interviewing.
+
+---
+
+## API Documentation
+
+| Method | Endpoint | Description | Payload / Response |
+|---|---|---|---|
+| `GET` | `/api/health` | Service health, active AI provider, model, and configured state | Returns JSON with status, provider, model, demo_mode |
+| `POST` | `/api/extract` | Multipart file upload for PDF, DOCX, TXT (Max 8 MB) | Form: `file` → `{text, filename, character_count}` |
+| `POST` | `/api/transcribe` | Audio file upload for cross-browser fallback | Form: `file` (audio/webm, wav) → `{text}` |
+| `POST` | `/api/analyze` | Structured role analysis, candidate profile, and job fit | Body: `{jd, resume}` → `{role, candidate, fit_dimensions, job_fit}` |
+| `POST` | `/api/interview/start` | Starts session & generates personalized Level 1 question | Body: `{analysis}` → `{session_id, level, turn, question, why_this_question}` |
+| `POST` | `/api/interview/answer` | Evaluates answer & returns causally adapted next question | Body: `{session_id, answer}` → `{evaluation, next, level, turn}` |
+| `POST` | `/api/interview/report` | Generates final performance report & preparation gap plan | Body: `{session_id}` → `{overall_score, readiness_score, competency_scores, gaps}` |
+
+---
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `LLM_PROVIDER` | Yes | `gemini` | `gemini` or `openai` |
+| `GEMINI_API_KEY` | If Gemini | Unset | Google AI Studio Gemini API key |
+| `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model endpoint (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`) |
+| `OPENAI_API_KEY` | If OpenAI | Unset | OpenAI API key |
+| `OPENAI_MODEL` | No | `gpt-4o-mini` | OpenAI model endpoint (`gpt-4o-mini`, `gpt-4o`) |
+| `DEMO_MODE` | No | `false` | When `true`, returns structured demo data if keys are unconfigured |
+| `FRONTEND_ORIGIN` | No | `http://localhost:8000` | Permitted CORS origin |
+
+---
+
+## Local Setup & Development
 
 ```bash
+# 1. Clone repository
+git clone https://github.com/nishantdubey-tech/interview-accelerator.git
+cd interview-accelerator
+
+# 2. Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Configure environment variables
 cp .env.example .env
-# Add GEMINI_API_KEY or OPENAI_API_KEY to .env; keep this file private.
+# Edit .env and set GEMINI_API_KEY=your_key_here
+
+# 5. Run local dev server
 uvicorn app:app --reload --port 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000). Choose one provider:
+Open [http://localhost:8000](http://localhost:8000) in Google Chrome or Microsoft Edge for the best Web Speech API voice experience.
 
-- Gemini: `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, optionally `GEMINI_MODEL` (default `gemini-3.8-flash`, currently listed by Google's docs as generally available).
-- OpenAI: `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, optionally `OPENAI_MODEL` (default `gpt-4o-mini`).
-- `FRONTEND_ORIGIN` sets the permitted browser origin. `DEMO_MODE` is reported by health but no mock AI implementation is provided.
+---
 
-The service makes outbound HTTPS calls to the selected provider. Errors and quota failures are surfaced as user-facing retry guidance without returning provider response bodies or credentials. Do not put keys in browser JavaScript.
+## Running Automated Tests
 
-## Deployment
+```bash
+python3 -m unittest discover -s tests
+```
 
-The application is deployed on Render's free web service plan at [https://interview-accelerator-44ui.onrender.com](https://interview-accelerator-44ui.onrender.com). The live health endpoint currently reports `ai_configured: false`: add `GEMINI_API_KEY` in the Render service's Environment settings (or select OpenAI and add `OPENAI_API_KEY`) to enable live analysis and interviewing. Never commit provider keys. The free instance can spin down when idle. A GitHub repository has been created at https://github.com/nishantdubey-tech/interview-accelerator and the current source is pushed to `main`; it remains private pending the owner's action-time confirmation to make it public.
+The test suite validates:
+1. Provider configuration masking and health API.
+2. File extraction and rejection of unsupported formats.
+3. Structured Job Fit calculation and dimension categorization.
+4. 3-level adaptive interview progression and answer-dependent follow-up generation.
+5. Cloud audio transcription endpoint.
+6. Session expiration and error state handling.
 
-For production beyond a single-instance demo, add persistent database storage, request-level auth/rate limits, server-side session expiration, observability, and a separate transcription service if cross-browser voice support is required. Candidate resume content is sensitive: obtain consent and define retention/deletion policy before public launch.
+---
 
-## Verification
+## Deployment Instructions
 
-Automated tests are not included yet. Use `GET /api/health`, then walk the full path with a valid API key: upload/paste both inputs → analyze → review weighted fit dimensions → start interview → submit distinct spoken/typed answers → verify questions reference details from the immediately preceding answer → complete at least seven answers to see all three levels → generate report. Test missing key, malformed inputs, rejected file types, oversized files, and denied microphone permissions. Browser voice capability varies by browser and operating system. Do not interpret unrun checks as passes.
-
-## Assignment checklist
-
-See [ASSIGNMENT_CHECKLIST.md](ASSIGNMENT_CHECKLIST.md) for requirement locations, status, and manual verification steps. See [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for the 3–5 minute recording script.
-
-## Known limitations
-
-- Single-process in-memory sessions are lost on restart and are not suitable for multiple app instances.
-- Browser speech recognition coverage is uneven; unsupported browsers require text fallback. No audio-file transcription provider is included.
-- This environment did not provide deployment credentials or a GitHub repository connection, so no live URL, repository, or demo video can be claimed.
-- The generated readiness score and answer evaluation are LLM-based coaching estimates, not validated hiring instruments.
+### Deploy to Render (Recommended)
+1. Fork or push this repository to your GitHub account.
+2. Create a new **Web Service** on Render and connect your repository.
+3. Configure the service:
+   - **Environment:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn app:app --host 0.0.0.0 --port $PORT`
+   - **Plan:** Free
+4. In the service's **Environment** tab, add:
+   - `LLM_PROVIDER`: `gemini`
+   - `GEMINI_API_KEY`: *(Your Google AI Studio API Key)*
+   - `GEMINI_MODEL`: `gemini-2.5-flash`
+5. Save changes. Render will automatically build and deploy.

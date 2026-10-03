@@ -1,1 +1,465 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f6f7f4"><title>Forma — Interview practice, made personal</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css"></head><body><div class="shell"><aside class="rail"><a class="brand" href="#" aria-label="Forma home"><span class="brand-mark">f</span><span>forma</span></a><div class="rail-label">WORKSPACE</div><button class="nav-item active" data-view="setup"><span class="nav-icon">⌂</span> Preparation</button><button class="nav-item" data-view="results"><span class="nav-icon">▤</span> My report</button><div class="rail-bottom"><div class="avatar">JD</div><div><b>Your workspace</b><small>Private session</small></div><span class="dots">···</span></div></aside><main class="main"><header class="topbar"><div class="crumb">Workspace <span>/</span> Interview preparation</div><div class="top-right"><span class="secure"><i></i> Session-only analysis</span><button class="help" title="Help">?</button></div></header><section class="view active" id="setupView"><div class="hero"><div class="eyebrow"><span class="spark">✳</span> YOUR NEXT OPPORTUNITY, WELL PREPARED</div><h1>Walk into your next<br>interview <em>ready.</em></h1><p>Bring the role and your story. We’ll build a practice session around what matters most.</p><div class="journey"><div class="journey-step current"><span>01</span><b>Your profile</b></div><div class="journey-line"></div><div class="journey-step"><span>02</span><b>Practice</b></div><div class="journey-line"></div><div class="journey-step"><span>03</span><b>Your plan</b></div></div></div><div class="input-grid"><article class="input-card"><div class="card-head"><div><div class="step-kicker">STEP 01</div><h2>The role</h2></div><span class="card-glyph">↗</span></div><p class="card-desc">What are they looking for?</p><label class="sr-only" for="jd">Job description</label><textarea id="jd" placeholder="Paste the job description here…&#10;&#10;The clearer the brief, the more targeted your practice."></textarea><div class="upload-row"><label class="upload-btn" for="jdFile">＋ Upload a file <small>PDF, DOCX, TXT · 8 MB max</small></label><input id="jdFile" type="file" accept=".pdf,.docx,.txt"></div></article><article class="input-card"><div class="card-head"><div><div class="step-kicker">STEP 02</div><h2>Your experience</h2></div><span class="card-glyph">✳</span></div><p class="card-desc">What have you done so far?</p><label class="sr-only" for="resume">Resume</label><textarea id="resume" placeholder="Paste your resume here…&#10;&#10;Include projects, impact, and the work you’re proud of."></textarea><div class="upload-row"><label class="upload-btn" for="resumeFile">＋ Upload a file <small>PDF, DOCX, TXT · 8 MB max</small></label><input id="resumeFile" type="file" accept=".pdf,.docx,.txt"></div></article></div><div class="action-row"><div class="privacy-note"><span>◈</span> Sent to your configured AI provider for personalization; not saved in browser storage</div><button id="analyzeBtn" class="primary-btn">Build my preparation <span>→</span></button></div><div id="setupError" class="error-banner hidden"></div><div id="analysisPanel" class="analysis-panel hidden"></div><div class="footnote">A thoughtful practice partner, not a pass/fail verdict.</div></section><section class="view" id="interviewView"><div class="interview-top"><button class="back-btn" id="exitInterview">← Preparation</button><div class="live-pill"><i></i> LIVE PRACTICE</div><div class="round-info"><span id="levelName">Screening</span><b id="turnCount">Question 1</b></div></div><div class="interview-layout"><div class="interviewer-card"><div class="orb-wrap"><div class="orb" id="orb"><span>f</span></div><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div></div><div class="interviewer-caption"><b>Your interviewer</b><span id="aiState">Ready when you are</span></div><div class="voice-caption"><span class="voice-dot"></span> Forma · Adaptive interviewer</div></div><div class="question-pane"><div class="question-meta"><span class="level-tag" id="levelTag">01 / SCREENING</span><span id="difficultyTag" class="difficulty">MODERATE</span></div><div id="questionText" class="question-text">Preparing your first question…</div><div id="questionWhy" class="question-why"></div><div class="answer-box"><label for="answerText">YOUR ANSWER</label><textarea id="answerText" placeholder="Take a moment, then speak or type your answer…"></textarea><div id="transcriptHint" class="transcript-hint">Your spoken words will appear here as text.</div></div><div class="controls"><button id="micBtn" class="mic-btn" title="Start voice answer"><span>●</span></button><div class="mic-copy"><b id="micLabel">Answer by voice</b><small id="micSub">Tap the microphone to begin</small></div><button id="speakBtn" class="icon-btn" title="Replay question">◖))</button><button id="stopSpeakBtn" class="icon-btn" title="Stop speaking">■</button><button id="submitAnswer" class="primary-btn submit-btn">Send answer <span>→</span></button></div><div id="answerError" class="error-banner hidden"></div></div></div><div class="interview-footer"><div class="progress-wrap"><div class="progress-label"><span>YOUR PRACTICE</span><b id="progressLabel">Just getting started</b></div><div class="progress-track"><div id="progressFill"></div></div></div><button id="finishBtn" class="text-btn">Finish & see my report</button><div id="evalToast" class="eval-toast hidden"></div></div></section><section class="view" id="resultsView"><div class="results-head"><div><div class="eyebrow"><span class="spark">✳</span> YOUR PRACTICE, REFLECTED</div><h1>A clearer picture<br>of <em>what’s next.</em></h1><p>Thoughtful feedback, grounded in what you actually said.</p></div><button id="backToSetup" class="secondary-btn">← New preparation</button></div><div id="resultsContent" class="results-content"><div class="empty-report"><span>✳</span><h2>Your report will appear here</h2><p>Complete a practice session to get feedback and a personalized plan.</p></div></div></section></main></div><div id="busyOverlay" class="busy-overlay hidden"><div class="busy-card"><div class="spinner"></div><b id="busyTitle">Building your preparation…</b><span id="busySub">Reading the role and your experience</span></div></div><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e1f1a">
+  <title>Forma — AI Interview Accelerator</title>
+  <meta name="description" content="AI-powered Interview Accelerator: Role analysis, resume evaluation, transparent job fit engine, 3-level adaptive voice interview simulation, and preparation gap report.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">f</div>
+        <div class="brand-text">
+          <span class="brand-name">forma</span>
+          <span class="brand-badge">INTERVIEW ACCELERATOR</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-section-label">WORKSPACE</div>
+        <button class="nav-tab active" data-view="setupView" id="navSetup">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Preparation & Setup</span>
+        </button>
+        <button class="nav-tab" data-view="analysisView" id="navAnalysis">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Role & Candidate Fit</span>
+        </button>
+        <button class="nav-tab" data-view="interviewView" id="navInterview">
+          <span class="nav-icon">🎙️</span>
+          <span class="nav-label">Interview Simulator</span>
+          <span class="live-indicator-dot hidden" id="interviewActiveDot"></span>
+        </button>
+        <button class="nav-tab" data-view="resultsView" id="navResults">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Performance Report</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-status">
+        <div class="provider-pill" id="providerStatus">
+          <span class="status-dot active"></span>
+          <div class="provider-info">
+            <span class="provider-name" id="providerLabel">Gemini Live AI</span>
+            <span class="provider-mode" id="providerSub">Model: gemini-2.5-flash</span>
+          </div>
+        </div>
+        <div class="session-info">
+          <small>Candidate Session: Active</small>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span class="crumb-root">Forma</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current" id="crumbTitle">Interview Preparation & Inputs</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="system-chip">
+            <span class="pulse-chip"></span>
+            <span>Adaptive Engine 3.0</span>
+          </div>
+          <button class="btn-help" id="helpBtn" title="How Forma works">?</button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: SETUP & INPUTS -->
+      <section class="view active" id="setupView">
+        <div class="view-hero">
+          <div class="hero-eyebrow">
+            <span class="sparkle">✦</span> STEP 01 — TARGETED PREPARATION
+          </div>
+          <h1>Walk into your next interview <span class="highlight">prepared.</span></h1>
+          <p class="hero-subtitle">
+            Upload your target job description and resume. Forma extracts deep competencies, calculates transparent job fit, and generates a personalized 3-level adaptive interview simulation.
+          </p>
+
+          <!-- Quick Test Presets -->
+          <div class="preset-box">
+            <span class="preset-label">⚡ QUICK-LOAD SAMPLE PROFILES FOR INSTANT TESTING:</span>
+            <div class="preset-buttons">
+              <button class="preset-btn" id="presetAiEng">
+                <b>AI / RAG Engineer</b>
+                <small>Python · FastAPI · LangChain · Vector DBs</small>
+              </button>
+              <button class="preset-btn" id="presetFullStack">
+                <b>Full-Stack Engineer</b>
+                <small>React · TypeScript · Node.js · PostgreSQL</small>
+              </button>
+              <button class="preset-btn" id="presetProductMgr">
+                <b>AI Product Manager</b>
+                <small>LLM Roadmaps · Latency KPIs · User Metrics</small>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Grid -->
+        <div class="input-grid">
+          <!-- Job Description Card -->
+          <div class="input-card" id="jdDropzone">
+            <div class="card-header">
+              <div class="step-num">STEP 01</div>
+              <h2>Target Job Description</h2>
+              <span class="card-icon">💼</span>
+            </div>
+            <p class="card-hint">Paste the full job brief or drop your JD file below.</p>
+            
+            <textarea id="jd" placeholder="Paste the job description here...&#10;&#10;e.g. Role responsibilities, required technical skills, experience requirements, and preferred qualifications..."></textarea>
+            <div class="char-count" id="jdCharCount">0 characters</div>
+
+            <div class="upload-zone">
+              <label for="jdFile" class="upload-btn">
+                <span>📁 Upload JD File</span>
+                <small>PDF, DOCX, TXT (Max 8 MB)</small>
+              </label>
+              <input type="file" id="jdFile" accept=".pdf,.docx,.txt">
+              <div class="upload-status" id="jdUploadStatus">No file loaded</div>
+            </div>
+          </div>
+
+          <!-- Resume Card -->
+          <div class="input-card" id="resumeDropzone">
+            <div class="card-header">
+              <div class="step-num">STEP 02</div>
+              <h2>Candidate Resume</h2>
+              <span class="card-icon">📄</span>
+            </div>
+            <p class="card-hint">Paste your resume content or upload your CV document.</p>
+            
+            <textarea id="resume" placeholder="Paste your resume here...&#10;&#10;e.g. Summary, previous work experience, project achievements, technical skills, and educational qualifications..."></textarea>
+            <div class="char-count" id="resumeCharCount">0 characters</div>
+
+            <div class="upload-zone">
+              <label for="resumeFile" class="upload-btn">
+                <span>📁 Upload Resume File</span>
+                <small>PDF, DOCX, TXT (Max 8 MB)</small>
+              </label>
+              <input type="file" id="resumeFile" accept=".pdf,.docx,.txt">
+              <div class="upload-status" id="resumeUploadStatus">No file loaded</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <div class="privacy-notice">
+            <span class="icon">🔒</span>
+            <span>Server-side API processing only. Never stores raw data publicly.</span>
+          </div>
+          <button id="analyzeBtn" class="btn-primary btn-large">
+            <span>Analyze My Profile</span>
+            <span class="arrow">→</span>
+          </button>
+        </div>
+
+        <div id="setupError" class="error-banner hidden"></div>
+      </section>
+
+      <!-- VIEW 2: ROLE ANALYSIS, CANDIDATE PROFILE & JOB FIT -->
+      <section class="view" id="analysisView">
+        <div class="section-header">
+          <div>
+            <div class="hero-eyebrow">STEP 02 — EVIDENCE-BASED ANALYSIS</div>
+            <h1>Profile Alignment & Job Fit</h1>
+          </div>
+          <button class="btn-primary" id="launchInterviewFromAnalysis">
+            <span>Start AI Interview Simulator</span>
+            <span class="arrow">→</span>
+          </button>
+        </div>
+
+        <!-- Sub Tabs for Analysis View -->
+        <div class="subtabs">
+          <button class="subtab-btn active" data-sub="subJobFit">🎯 Job Fit Engine</button>
+          <button class="subtab-btn" data-sub="subRole">💼 Role Analysis</button>
+          <button class="subtab-btn" data-sub="subCandidate">👤 Candidate Evidence & Gaps</button>
+        </div>
+
+        <!-- Subtab 1: Job Fit Engine -->
+        <div class="subtab-pane active" id="subJobFit">
+          <div class="job-fit-hero-card">
+            <div class="fit-gauge-col">
+              <div class="fit-gauge">
+                <span class="fit-val" id="fitScoreVal">--%</span>
+                <span class="fit-lbl">JOB FIT SCORE</span>
+              </div>
+              <div class="fit-status-badge" id="fitStatusBadge">Calculating...</div>
+            </div>
+            <div class="fit-rationale-col">
+              <h3>Defensible Fit Scoring Methodology</h3>
+              <p id="fitRationaleText">
+                Forma does not prompt the model for an arbitrary percentage. Instead, the server mathematically computes the weighted aggregate of 6 model-assessed evidence dimensions across required skills, technical competencies, experience, projects, behavioural match, and qualifications.
+              </p>
+              <div class="fit-formula-legend">
+                <span>Required Skills (30%)</span> · 
+                <span>Technical (25%)</span> · 
+                <span>Experience (15%)</span> · 
+                <span>Projects (15%)</span> · 
+                <span>Behavioural (10%)</span> · 
+                <span>Qualifications (5%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dimension Breakdown Grid -->
+          <div class="section-title">Evidence Dimension Breakdown</div>
+          <div class="dimensions-grid" id="fitDimensionsGrid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Subtab 2: Role Analysis -->
+        <div class="subtab-pane" id="subRole">
+          <div class="role-grid" id="roleGrid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Subtab 3: Candidate Evidence & Gaps -->
+        <div class="subtab-pane" id="subCandidate">
+          <div class="candidate-grid" id="candidateGrid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: AI INTERVIEW SIMULATOR ROOM -->
+      <section class="view" id="interviewView">
+        <!-- Interview Header & Level Status -->
+        <div class="interview-header-bar">
+          <div class="interview-level-indicator">
+            <span class="level-pill" id="levelPill">LEVEL 1: SCREENING</span>
+            <span class="turn-pill" id="turnPill">Question 1</span>
+            <span class="difficulty-pill" id="diffPill">MODERATE DIFFICULTY</span>
+          </div>
+
+          <div class="interview-progress-box">
+            <div class="progress-labels">
+              <span>Overall Interview Progress</span>
+              <span id="interviewProgressText">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="interviewProgressBar" style="width: 10%;"></div>
+            </div>
+          </div>
+
+          <div class="interview-top-actions">
+            <button class="btn-secondary btn-sm" id="btnFinishInterview">Finish & See Report</button>
+          </div>
+        </div>
+
+        <!-- Stage Explainer Ribbon -->
+        <div class="stage-ribbon" id="stageRibbon">
+          <span class="stage-tag active" id="stage1Tag">1. Screening (Resume & Fit)</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-tag" id="stage2Tag">2. Competency (Technical & Problem Solving)</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-tag" id="stage3Tag">3. Deep-Dive (Trade-offs & Probing)</span>
+        </div>
+
+        <!-- Main Interview Room Layout -->
+        <div class="interview-room-grid">
+          <!-- Left Column: Interviewer AI & Webcam Preview -->
+          <div class="interviewer-column">
+            <!-- AI Avatar Card -->
+            <div class="interviewer-avatar-card">
+              <div class="avatar-visual">
+                <div class="orb-container">
+                  <div class="orb" id="aiOrb">
+                    <span class="orb-letter">f</span>
+                  </div>
+                  <div class="orb-ring ring-1"></div>
+                  <div class="orb-ring ring-2"></div>
+                </div>
+              </div>
+              <div class="interviewer-details">
+                <h3 id="interviewerName">Forma AI Interviewer</h3>
+                <div class="interviewer-status" id="aiStatusText">Ready when you are</div>
+              </div>
+
+              <!-- Audio Controls -->
+              <div class="tts-controls">
+                <button class="btn-icon" id="speakBtn" title="Speak / Replay question">
+                  <span>🔊 Replay Question</span>
+                </button>
+                <button class="btn-icon" id="stopSpeakBtn" title="Stop speech">
+                  <span>⏹ Stop</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Bonus: Candidate Camera Preview -->
+            <div class="webcam-card">
+              <div class="webcam-header">
+                <span>📹 Candidate Video Preview</span>
+                <button class="btn-toggle-cam" id="toggleCamBtn">Turn On</button>
+              </div>
+              <div class="webcam-container" id="webcamContainer">
+                <video id="webcamVideo" autoplay muted playsinline class="hidden"></video>
+                <div class="webcam-placeholder" id="webcamPlaceholder">
+                  <span>Camera Off (Audio-Only Mode)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Real-Time Speech Analytics -->
+            <div class="speech-analytics-card">
+              <div class="analytics-title">Speech Analytics (Live)</div>
+              <div class="analytics-row">
+                <div class="analytic-item">
+                  <span class="val" id="speechTimer">00:00</span>
+                  <span class="lbl">Duration</span>
+                </div>
+                <div class="analytic-item">
+                  <span class="val" id="speechWpm">0 WPM</span>
+                  <span class="lbl">Pace</span>
+                </div>
+                <div class="analytic-item">
+                  <span class="val" id="fillerCount">0</span>
+                  <span class="lbl">Filler Words</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Question, Answer Input & Controls -->
+          <div class="question-column">
+            <!-- Current Question Card -->
+            <div class="question-card">
+              <div class="competency-badge" id="questionCompetency">Role Fit & Ownership</div>
+              <h2 class="question-text" id="questionText">Preparing your personalized opening question...</h2>
+              
+              <div class="why-question-box">
+                <span class="why-icon">💡</span>
+                <span class="why-text" id="whyQuestionText">Analyzing profile evidence...</span>
+              </div>
+            </div>
+
+            <!-- Candidate Answer Box -->
+            <div class="answer-card">
+              <div class="answer-header">
+                <label for="answerText">YOUR ANSWER (VOICE OR TEXT)</label>
+                <span class="answer-mode-hint">Microphone or direct typing supported</span>
+              </div>
+
+              <textarea id="answerText" placeholder="Click the microphone to speak your answer, or type directly here...&#10;&#10;Tip: Specific examples with baselines and outcomes score highest!"></textarea>
+
+              <div class="transcript-live-box" id="transcriptBox">
+                <span class="status-indicator" id="sttStatusDot">●</span>
+                <span id="transcriptLiveText">Voice recognition ready. Click 'Start Speaking' below.</span>
+              </div>
+
+              <!-- Controls Row -->
+              <div class="answer-controls">
+                <!-- Voice Mic Button -->
+                <button class="btn-mic" id="micBtn">
+                  <span class="mic-icon">🎙️</span>
+                  <span class="mic-text" id="micBtnText">Start Speaking</span>
+                </button>
+
+                <!-- Audio Recording Backend Fallback -->
+                <button class="btn-record-cloud" id="cloudRecordBtn" title="Records audio and transcribes via backend AI (Safari/Firefox fallback)">
+                  <span>☁️ Cloud Audio Fallback</span>
+                </button>
+
+                <button class="btn-clear" id="clearAnswerBtn" title="Clear current answer">Clear</button>
+
+                <!-- Submit Answer Button -->
+                <button class="btn-primary btn-submit" id="submitAnswerBtn">
+                  <span>Submit Answer</span>
+                  <span class="arrow">→</span>
+                </button>
+              </div>
+
+              <div id="answerError" class="error-banner hidden"></div>
+            </div>
+
+            <!-- Live Micro-Evaluation Toast -->
+            <div class="micro-eval-card hidden" id="microEvalCard">
+              <div class="micro-eval-head">
+                <span class="eval-score" id="evalScoreBadge">78/100</span>
+                <span class="eval-competency" id="evalCompBadge">Technical Reasoning</span>
+              </div>
+              <div class="micro-eval-body">
+                <p id="evalFeedbackText">Evaluation feedback...</p>
+                <div class="eval-followup-reason" id="evalFollowupReason">Follow-up reason...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: PERFORMANCE & PREPARATION REPORT -->
+      <section class="view" id="resultsView">
+        <div class="report-header">
+          <div>
+            <div class="hero-eyebrow">FINAL EVALUATION & READINESS</div>
+            <h1>Performance & Preparation Report</h1>
+            <p class="hero-subtitle">Comprehensive assessment grounded in your actual answers and job fit.</p>
+          </div>
+          <div class="report-actions">
+            <button class="btn-secondary" id="printReportBtn">🖨️ Print / Save PDF</button>
+            <button class="btn-primary" id="startNewInterviewBtn">Start New Interview</button>
+          </div>
+        </div>
+
+        <div id="reportContent" class="report-container">
+          <div class="empty-state">
+            <span class="empty-icon">📊</span>
+            <h2>No Completed Interview Yet</h2>
+            <p>Complete at least one interview question in the Simulator to generate your full performance report.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Busy / Loading Modal Overlay -->
+  <div class="busy-overlay hidden" id="busyOverlay">
+    <div class="busy-modal">
+      <div class="spinner"></div>
+      <h3 id="busyTitle">Analyzing Profile...</h3>
+      <p id="busySubtitle">Evaluating role requirements and candidate experience...</p>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="help-modal hidden" id="helpModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>How Forma Works</h3>
+        <button class="modal-close" id="closeHelpModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4>1. Structured Role & Candidate Extraction</h4>
+        <p>Your JD and resume are parsed for required competencies, achievements, and claims requiring follow-up questioning.</p>
+        <h4>2. Transparent Job Fit Engine</h4>
+        <p>Scores are calculated using a 6-factor evidence model: Required Skills (30%), Technical (25%), Experience (15%), Projects (15%), Behavioural (10%), Qualifications (5%).</p>
+        <h4>3. 3-Level Adaptive Interview Simulator</h4>
+        <p>• <b>Level 1 (Screening):</b> Evaluates motivation, ownership, and resume claims.<br>
+           • <b>Level 2 (Competency):</b> Tests technical depth, problem-solving, and architecture.<br>
+           • <b>Level 3 (Deep-Dive):</b> Challenges assumptions, probes metrics, and asks why/how.</p>
+        <h4>4. Voice & Cloud Fallback</h4>
+        <p>Speak using Chrome/Edge Web Speech API, or use Cloud Audio Fallback on Safari/Firefox, or type directly.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
