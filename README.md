@@ -69,7 +69,7 @@ The service makes outbound HTTPS calls to the selected provider. Errors and quot
 
 ## Deployment
 
-`render.yaml` prepares a single-service Render deployment that serves both the API and client. Set `GEMINI_API_KEY` (or modify provider environment variables for OpenAI) in the Render service secret settings before using AI features. Configure `FRONTEND_ORIGIN` to the public app origin if serving the frontend separately. A live application has not been deployed from this workspace. No GitHub repository has been created or pushed. Deployment requires an account, API key, and repository connection.
+`render.yaml` prepares a single-service Render deployment that serves both the API and client. Set `GEMINI_API_KEY` (or modify provider environment variables for OpenAI) in the Render service secret settings before using AI features. Configure `FRONTEND_ORIGIN` to the public app origin if serving the frontend separately. A GitHub repository has been created at https://github.com/nishantdubey-tech/interview-accelerator and the current source is pushed to `main`. The repository is private. A live application has not been deployed from this workspace. Deployment requires a hosting account and provider API key.
 
 For production beyond a single-instance demo, add persistent database storage, request-level auth/rate limits, server-side session expiration, observability, and a separate transcription service if cross-browser voice support is required. Candidate resume content is sensitive: obtain consent and define retention/deletion policy before public launch.
 

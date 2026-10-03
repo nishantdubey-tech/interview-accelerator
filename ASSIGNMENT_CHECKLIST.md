@@ -24,6 +24,6 @@ Statuses are implementation review, not a claim that live external services have
 | Cross-browser cloud transcription fallback | [PARTIAL] | Browser recognition plus typed fallback; no audio provider | Test Safari/Firefox unsupported path; use text fallback |
 | API and integration automated test suite | [PARTIAL] | `tests/test_flow.py` checks answer-conditioned follow-ups, three levels, readiness, and missing session; external provider/browser flows not exercised | Run `python3 -m unittest discover -s tests` with a provider key for further integration coverage |
 | Live deployed app | [PARTIAL] | `render.yaml` deployment configuration is prepared; no credentials/account access in this workspace | Deploy with configured account/secret, then test public URL |
-| GitHub repository | [PARTIAL] | Source folder is ready; no remote/repository access in this workspace | Create/push repository and verify public/private URL |
+| GitHub repository | [PARTIAL] | Created and pushed at `https://github.com/nishantdubey-tech/interview-accelerator`; repository is private | Confirm evaluator access or change repository visibility if the assignment requires public access |
 | Demo video recording | [PARTIAL] | Recording script in `DEMO_SCRIPT.md`; no video recorded | Record real end-to-end flow and attach video |
 | Architecture/AI/voice/evaluation technical explanation | [PASS] | `README.md` | Review architecture and methodology sections |
