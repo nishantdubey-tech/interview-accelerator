@@ -1144,7 +1144,8 @@ Candidate Evidence: {json.dumps(a.get('candidate'))}'''
         "question": q["question"],
         "competency": q.get("competency", "Role Fit & Project Ownership"),
         "why_this_question": q.get("why_this_question", "Personalized based on your resume evidence."),
-        "difficulty": q.get("difficulty", "moderate")
+        "difficulty": q.get("difficulty", "moderate"),
+        "_provider_notice": q.get("_provider_notice")
     }
 
 @app.post("/api/interview/answer")
@@ -1262,7 +1263,8 @@ Accumulated Weaknesses: {json.dumps(s["weaknesses"][-5:])}'''
         "why_this_question": nxt.get("why_this_question", "Formulated from your preceding answer."),
         "difficulty": nxt.get("difficulty", s["difficulty"]),
         "progress": progress_pct,
-        "total_answers": len(s["history"])
+        "total_answers": len(s["history"]),
+        "_provider_notice": result.get("_provider_notice")
     }
 
 @app.post("/api/interview/report")
