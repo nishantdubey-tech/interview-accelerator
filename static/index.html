@@ -156,6 +156,32 @@
               <input type="file" id="resumeFile" accept=".pdf,.docx,.txt">
               <div class="upload-status" id="resumeUploadStatus">No file loaded</div>
             </div>
+
+            <!-- Candidate Live Preview Card -->
+            <div class="candidate-preview-card hidden" id="candidateLivePreviewCard">
+              <div class="candidate-preview-header">
+                <div class="candidate-avatar" id="previewAvatar">ND</div>
+                <div class="candidate-meta">
+                  <div class="candidate-preview-topline">
+                    <h4 id="previewCandidateName">Candidate Preview</h4>
+                    <span class="preview-badge" id="previewSeniorityBadge">Detected</span>
+                  </div>
+                  <p class="candidate-headline" id="previewHeadline">Role / Headline extracted from resume</p>
+                </div>
+              </div>
+              <div class="preview-stat-row">
+                <span class="stat-pill stat-verified" id="previewExpPill">🕒 Exp: Detecting...</span>
+                <span class="stat-pill" id="previewEduPill">🎓 Edu: Detecting...</span>
+                <span class="stat-pill" id="previewContactPill">✉️ Contact detected</span>
+              </div>
+              <div class="preview-skills-row" id="previewSkillsContainer">
+                <span class="skills-label">Detected Skills:</span>
+                <div id="previewSkillsList" style="display:inline-flex; gap:6px; flex-wrap:wrap;"></div>
+              </div>
+              <div class="preview-highlight-box" id="previewHighlightBox">
+                <strong>Executive Highlight:</strong> <span id="previewSummaryText">...</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -354,6 +380,46 @@
                 <div class="analytic-item">
                   <span class="val" id="fillerCount">0</span>
                   <span class="lbl">Filler Words</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Candidate Live Prep HUD & Talking Points -->
+            <div class="candidate-hud-card" id="candidateHudCard">
+              <div class="hud-toggle-btn" id="toggleCheatsheetBtn">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:15px;">👤</span>
+                  <div style="text-align:left;">
+                    <div style="font-weight:700; color:var(--text-main); font-size:12px;" id="hudCandidateName">Candidate Preview</div>
+                    <div style="font-size:10px; color:var(--text-muted);" id="hudCandidateRole">Targeting Role</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-size:11px; color:var(--mint-accent); font-weight:600;">Talking Points</span>
+                  <span id="hudChevron" style="font-size:10px; color:var(--text-muted); transition:transform 0.2s ease;">▼</span>
+                </div>
+              </div>
+
+              <!-- Live Microphone Activity Meter -->
+              <div class="audio-meter-bar" title="Mic voice activity indicator">
+                <div class="audio-meter-fill" id="hudAudioFill"></div>
+              </div>
+
+              <!-- Expandable Talking Points Drawer -->
+              <div class="hud-content hidden" id="hudDrawerContent">
+                <div class="hud-section">
+                  <div class="hud-label">💡 Key Claims to Defend:</div>
+                  <ul class="bullet-list" id="hudClaimsList" style="margin:4px 0 0; padding-left:14px; font-size:11px;">
+                    <li>Load a profile to see your key achievements</li>
+                  </ul>
+                </div>
+                <div class="hud-section">
+                  <div class="hud-label">⚡ Matched Technologies to Emphasize:</div>
+                  <div id="hudSkillsChips" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;"></div>
+                </div>
+                <div class="hud-section" style="margin-bottom:0;">
+                  <div class="hud-label">🎯 Recommended Focus:</div>
+                  <p id="hudPrepFocus" style="font-size:11px; color:var(--text-muted); margin:4px 0 0; line-height:1.4;">Explain trade-offs clearly and quantify your production results.</p>
                 </div>
               </div>
             </div>

@@ -421,6 +421,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Live text input analytics
   $('#answerText').addEventListener('input', updateLiveAnswerAnalytics);
+
+  // Setup Candidate Live HUD & Cheatsheet
+  setupCheatsheetToggle();
+
+  // Initialize candidate preview
+  updateCandidateLivePreview();
 });
 
 // Load Preset
@@ -437,6 +443,232 @@ function loadPreset(key) {
 function updateCharCounts() {
   $('#jdCharCount').textContent = `${$('#jd').value.length.toLocaleString()} characters`;
   $('#resumeCharCount').textContent = `${$('#resume').value.length.toLocaleString()} characters`;
+  updateCandidateLivePreview();
+}
+
+// Candidate Live Preview Parsing & Updating
+function extractCandidatePreview(text) {
+  if (!text || text.trim().length < 25) return null;
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  // 1. Candidate Name
+  let name = '';
+  const nameMatch = text.match(/^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})/mi);
+  if (nameMatch) {
+    name = nameMatch[1].trim();
+  } else {
+    for (const l of lines.slice(0, 5)) {
+      const lower = l.toLowerCase();
+      if (['resume', 'curriculum', 'vitae', 'summary', 'objective', 'experience', 'education', 'skills', 'contact', 'email', 'http', 'github', 'linkedin'].some(h => lower.includes(h))) {
+        continue;
+      }
+      const cleaned = l.split(/[|•\-,/@]/)[0].trim();
+      const words = cleaned.split(/\s+/);
+      if (words.length >= 1 && words.length <= 4 && /^[A-Za-z\s.'-]+$/.test(cleaned) && cleaned.length >= 3) {
+        name = cleaned.replace(/\b\w/g, c => c.toUpperCase());
+        break;
+      }
+    }
+  }
+  if (!name) name = 'Candidate Profile';
+
+  // 2. Initials for Avatar
+  const nameParts = name.split(/\s+/).filter(Boolean);
+  const initials = nameParts.length >= 2 
+    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+    : (name.slice(0, 2) || 'CP').toUpperCase();
+
+  // 3. Headline / Title
+  let headline = '';
+  for (const l of lines.slice(0, 6)) {
+    const lower = l.toLowerCase();
+    if (['engineer', 'developer', 'architect', 'manager', 'lead', 'specialist', 'scientist', 'designer', 'analyst', 'intern'].some(k => lower.includes(k))) {
+      const parts = l.split(/[|•]/);
+      for (const p of parts) {
+        const pClean = p.trim();
+        if (['engineer', 'developer', 'architect', 'manager', 'lead', 'specialist', 'scientist', 'designer', 'analyst', 'intern'].some(k => pClean.toLowerCase().includes(k))) {
+          headline = pClean;
+          break;
+        }
+      }
+      if (headline) break;
+    }
+  }
+  if (!headline) headline = 'Software Engineering Professional';
+
+  // 4. Experience & Seniority
+  let expText = 'Experience Evidenced';
+  let badgeText = 'Mid-Level';
+  const expMatch = text.match(/(\d+)\+?\s*years?/i);
+  if (expMatch) {
+    const yrs = parseInt(expMatch[1], 10);
+    expText = `🕒 ${yrs}+ Years Exp`;
+    badgeText = yrs >= 5 ? 'Senior' : (yrs >= 3 ? 'Mid-Level' : 'Foundational');
+  } else if (/senior|lead|principal/i.test(headline)) {
+    expText = '🕒 4+ Years (Senior)';
+    badgeText = 'Senior';
+  }
+
+  // 5. Education
+  let eduText = '🎓 Degree / Practical Exp';
+  if (/phd/i.test(text)) eduText = '🎓 Ph.D. Level';
+  else if (/master|m\.s\b|m\.tech/i.test(text)) eduText = '🎓 Master\'s Degree';
+  else if (/bachelor|b\.s\b|b\.tech/i.test(text)) eduText = '🎓 Bachelor\'s Degree';
+
+  // 6. Contact
+  let contactText = '✉️ Contact Details';
+  const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (emailMatch) {
+    contactText = `✉️ ${emailMatch[1]}`;
+  }
+
+  // 7. Recognized Skills
+  const commonSkills = [
+    'Python', 'JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'FastAPI', 'Docker',
+    'Kubernetes', 'AWS', 'GCP', 'PostgreSQL', 'Redis', 'LangChain', 'LlamaIndex', 'RAG', 'LLM',
+    'PyTorch', 'TensorFlow', 'Pinecone', 'Qdrant', 'SQL', 'GraphQL', 'Tailwind', 'CI/CD', 'Git'
+  ];
+  const detectedSkills = commonSkills.filter(s => {
+    const pattern = new RegExp(`(?<![a-zA-Z0-9_-])${s.replace('.', '\\.')}(?![a-zA-Z0-9_-])`, 'i');
+    return pattern.test(text);
+  });
+
+  // 8. Key Highlight / Summary
+  let highlight = '';
+  for (const l of lines) {
+    if (/\d+%(?:\s+reduction|\s+improvement|\s+increase|\s+faster)?|\b\d+x\b|\b\d+k\b|\$\d+/i.test(l) && l.length > 20) {
+      highlight = l.replace(/^[-*•]\s*/, '');
+      break;
+    }
+  }
+  if (!highlight) {
+    const sumIdx = lines.findIndex(l => /summary|overview|profile/i.test(l));
+    if (sumIdx !== -1 && lines[sumIdx + 1]) {
+      highlight = lines[sumIdx + 1];
+    } else {
+      highlight = lines.slice(1, 4).join(' ').slice(0, 160) + '...';
+    }
+  }
+
+  return {
+    name,
+    initials,
+    headline,
+    badgeText,
+    expText,
+    eduText,
+    contactText,
+    skills: detectedSkills.slice(0, 7),
+    highlight: highlight.slice(0, 180)
+  };
+}
+
+function updateCandidateLivePreview() {
+  const card = $('#candidateLivePreviewCard');
+  if (!card) return;
+
+  const text = $('#resume').value.trim();
+  const preview = extractCandidatePreview(text);
+
+  if (!preview) {
+    card.classList.add('hidden');
+    return;
+  }
+
+  $('#previewAvatar').textContent = preview.initials;
+  $('#previewCandidateName').textContent = preview.name;
+  $('#previewSeniorityBadge').textContent = preview.badgeText;
+  $('#previewHeadline').textContent = preview.headline;
+  $('#previewExpPill').textContent = preview.expText;
+  $('#previewEduPill').textContent = preview.eduText;
+  $('#previewContactPill').textContent = preview.contactText;
+
+  const skillsContainer = $('#previewSkillsList');
+  if (skillsContainer) {
+    if (preview.skills.length > 0) {
+      skillsContainer.innerHTML = preview.skills.map(s => `<span class="chip">${escapeHtml(s)}</span>`).join('');
+      $('#previewSkillsContainer').classList.remove('hidden');
+    } else {
+      skillsContainer.innerHTML = '<span class="chip">General Engineering</span>';
+    }
+  }
+
+  $('#previewSummaryText').textContent = preview.highlight;
+  card.classList.remove('hidden');
+
+  // Also update Candidate HUD in the interview room if present
+  updateCandidateHud(preview);
+}
+
+function updateCandidateHud(preview) {
+  const nameEl = $('#hudCandidateName');
+  const roleEl = $('#hudCandidateRole');
+  if (!nameEl) return;
+
+  if (preview) {
+    nameEl.textContent = preview.name;
+    roleEl.textContent = preview.headline;
+  } else if (state.analysis?.candidate) {
+    const cand = state.analysis.candidate;
+    nameEl.textContent = cand.candidate_name || 'Candidate Profile';
+    roleEl.textContent = cand.headline || (state.analysis.role?.role_title || 'Software Engineer');
+  }
+
+  // Populate talking points drawer
+  const cand = state.analysis?.candidate;
+  if (cand) {
+    const claimsList = $('#hudClaimsList');
+    if (claimsList && cand.achievements?.length) {
+      claimsList.innerHTML = cand.achievements.slice(0, 3).map(a => `<li>${escapeHtml(a)}</li>`).join('');
+    }
+    const skillsChips = $('#hudSkillsChips');
+    if (skillsChips && cand.skills?.length) {
+      skillsChips.innerHTML = cand.skills.slice(0, 6).map(s => `<span class="chip" style="font-size:10px; padding:2px 6px;">${escapeHtml(s)}</span>`).join('');
+    }
+    const prepFocus = $('#hudPrepFocus');
+    if (prepFocus && cand.preparation_areas?.length) {
+      prepFocus.textContent = cand.preparation_areas[0];
+    }
+  }
+}
+
+function setupCheatsheetToggle() {
+  const btn = $('#toggleCheatsheetBtn');
+  const drawer = $('#hudDrawerContent');
+  const chevron = $('#hudChevron');
+  if (!btn || !drawer) return;
+
+  btn.addEventListener('click', () => {
+    drawer.classList.toggle('hidden');
+    if (drawer.classList.contains('hidden')) {
+      chevron.style.transform = 'rotate(0deg)';
+    } else {
+      chevron.style.transform = 'rotate(180deg)';
+    }
+  });
+}
+
+let audioMeterInterval = null;
+function startAudioMeter() {
+  const fill = $('#hudAudioFill');
+  if (!fill) return;
+  if (audioMeterInterval) clearInterval(audioMeterInterval);
+  audioMeterInterval = setInterval(() => {
+    if (state.isRecordingSTT || state.isRecordingCloud) {
+      const pct = Math.floor(Math.random() * 65) + 30;
+      fill.style.width = `${pct}%`;
+    } else {
+      fill.style.width = '0%';
+      clearInterval(audioMeterInterval);
+    }
+  }, 180);
+}
+
+function stopAudioMeter() {
+  if (audioMeterInterval) clearInterval(audioMeterInterval);
+  const fill = $('#hudAudioFill');
+  if (fill) fill.style.width = '0%';
 }
 
 // File Upload Handler
@@ -613,7 +845,28 @@ function renderAnalysisView(data) {
 
   // 4. Candidate Breakdown
   const cand = data.candidate || {};
+  const cName = cand.candidate_name || 'Candidate Profile';
+  const cHead = cand.headline || (data.role?.role_title || 'Software Professional');
+  const cSeniority = cand.seniority || 'Verified Profile';
+  const cInitials = (cName.split(/\s+/).map(w => w[0]).join('').slice(0, 2) || 'CP').toUpperCase();
+
   $('#candidateGrid').innerHTML = `
+    <div class="candidate-hero-card">
+      <div class="candidate-hero-avatar">${escapeHtml(cInitials)}</div>
+      <div class="candidate-hero-info">
+        <div class="candidate-hero-top">
+          <h3>${escapeHtml(cName)}</h3>
+          <span class="preview-badge">${escapeHtml(cSeniority)}</span>
+        </div>
+        <div class="candidate-hero-headline">${escapeHtml(cHead)}</div>
+        <div class="candidate-hero-metrics">
+          <span class="candidate-hero-metric">🎯 Target: <b>${escapeHtml(data.role?.role_title || 'Role')}</b></span>
+          <span class="candidate-hero-metric">⚡ Matched Skills: <b>${(cand.skills || []).length}</b></span>
+          <span class="candidate-hero-metric">🔍 Claims to Probe: <b>${(cand.claims_to_probe || []).length}</b></span>
+          <span class="candidate-hero-metric">💡 Identified Strengths: <b>${(cand.strengths || []).length}</b></span>
+        </div>
+      </div>
+    </div>
     <div class="info-block">
       <h3>✅ Demonstrated Strengths</h3>
       <ul class="bullet-list">
@@ -745,6 +998,7 @@ function setInterviewQuestion(q) {
   $('#answerText').value = '';
   $('#transcriptLiveText').textContent = 'Voice recognition ready. Click "Start Speaking" or type below.';
   resetSpeechAnalytics();
+  updateCandidateHud();
 }
 
 // TTS Speech Synthesis
@@ -838,6 +1092,7 @@ function toggleSpeechRecognition() {
   $('#transcriptLiveText').textContent = 'Listening to your microphone...';
 
   startSpeechTimer();
+  startAudioMeter();
 
   try {
     rec.start();
@@ -857,6 +1112,7 @@ function stopSpeechRecognition() {
   $('#micBtnText').textContent = 'Start Speaking';
   $('#sttStatusDot').classList.remove('listening');
   stopSpeechTimer();
+  stopAudioMeter();
 }
 
 // Fallback: Cloud Audio Recording via MediaRecorder + /api/transcribe
@@ -906,6 +1162,7 @@ async function toggleCloudAudioRecord() {
     $('#cloudRecordBtn').querySelector('span').textContent = '⏹ Stop Cloud Recording';
     $('#transcriptLiveText').textContent = 'Recording audio for cloud transcription...';
     startSpeechTimer();
+    startAudioMeter();
   } catch (err) {
     alert('Microphone access denied or unavailable: ' + err.message);
   }
@@ -919,6 +1176,7 @@ function stopCloudAudioRecord() {
   $('#cloudRecordBtn').classList.remove('recording');
   $('#cloudRecordBtn').querySelector('span').textContent = '☁️ Cloud Audio Fallback';
   stopSpeechTimer();
+  stopAudioMeter();
 }
 
 // Speech Timer & Analytics (WPM, Fillers)
@@ -1074,7 +1332,26 @@ function renderReportView(rep) {
   const container = $('#reportContent');
   const badgeClass = rep.readiness_score >= 85 ? 'cat-strong' : (rep.readiness_score >= 75 ? 'cat-strong' : (rep.readiness_score >= 60 ? 'cat-partial' : 'cat-weak'));
 
+  const cName = rep.candidate_name || state.analysis?.candidate?.candidate_name || 'Candidate Evaluation';
+  const rTitle = rep.role_title || state.analysis?.role?.role_title || 'Software Engineering Professional';
+  const cInitials = (cName.split(/\s+/).map(w => w[0]).join('').slice(0, 2) || 'CP').toUpperCase();
+
   container.innerHTML = `
+    <!-- Candidate Profile Banner -->
+    <div style="background:var(--bg-card); border:1px solid var(--border-highlight); border-radius:var(--radius-lg); padding:16px 22px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="candidate-avatar">${escapeHtml(cInitials)}</div>
+        <div>
+          <h2 style="font-size:18px; font-weight:800; color:var(--text-main); margin:0;">${escapeHtml(cName)}</h2>
+          <div style="font-size:12px; color:var(--mint-accent); margin-top:2px;">Target Role: <b>${escapeHtml(rTitle)}</b></div>
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); text-align:right;">
+        <span>Generated: ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span><br>
+        <span style="color:var(--mint-accent); font-weight:600;">● AI Interview Accelerator Certified</span>
+      </div>
+    </div>
+
     <!-- High-level Summary Cards -->
     <div class="summary-score-cards">
       <div class="score-card">

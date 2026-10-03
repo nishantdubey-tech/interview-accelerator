@@ -192,6 +192,46 @@ def _extract_skills_from_text(text: str) -> list[str]:
             found.append(s)
     return found
 
+def _extract_candidate_name(resume: str) -> str:
+    """Extract candidate name from resume header or first non-empty lines."""
+    m = re.search(r"^(?:Candidate\s+Name|Name|Full\s+Name):\s*([A-Za-z\s.'-]{2,40})", resume, re.M | re.I)
+    if m:
+        return m.group(1).strip()
+    
+    lines = [l.strip() for l in resume.splitlines() if l.strip()]
+    for line in lines[:5]:
+        lower = line.lower()
+        if any(h in lower for h in [
+            "resume", "curriculum", "vitae", "summary", "objective", "experience",
+            "education", "skills", "contact", "phone", "email", "http", "github", "linkedin",
+            "page 1", "confidential"
+        ]):
+            continue
+        cleaned = re.split(r"[|•\-,/@]", line)[0].strip()
+        words = cleaned.split()
+        if 1 <= len(words) <= 4 and re.match(r"^[A-Za-z\s.'-]+$", cleaned) and len(cleaned) >= 3:
+            return cleaned.title()
+    return "Candidate"
+
+def _extract_candidate_headline(resume: str, default_role: str = "") -> str:
+    """Extract candidate headline or primary job title."""
+    lines = [l.strip() for l in resume.splitlines() if l.strip()]
+    for line in lines[:6]:
+        lower = line.lower()
+        if any(h in lower for h in [
+            "engineer", "developer", "architect", "manager", "lead", "specialist",
+            "scientist", "designer", "analyst", "consultant", "intern"
+        ]):
+            parts = re.split(r"[|•]", line)
+            for p in parts:
+                p_clean = p.strip()
+                if any(h in p_clean.lower() for h in [
+                    "engineer", "developer", "architect", "manager", "lead", "specialist",
+                    "scientist", "designer", "analyst", "consultant", "intern"
+                ]):
+                    return p_clean
+    return default_role or "Software Professional"
+
 def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
     """
     Produce a genuine, flexible, evidence-based Job Fit evaluation and profile breakdown
@@ -218,6 +258,10 @@ def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
             role_title = "DevOps / Infrastructure Engineer"
         else:
             role_title = "Software Engineer"
+
+    # Candidate Name & Headline Preview
+    candidate_name = _extract_candidate_name(resume)
+    headline = _extract_candidate_headline(resume, role_title)
 
     # 2. Extract Skills from JD & Resume
     jd_skills = _extract_skills_from_text(jd)
@@ -383,6 +427,10 @@ def _dynamic_analyze_from_text(jd: str, resume: str) -> dict[str, Any]:
             "qualifications": ["Bachelor's degree in Computer Science, related technical field, or equivalent practical experience"]
         },
         "candidate": {
+            "candidate_name": candidate_name,
+            "headline": headline,
+            "seniority": f"Senior ({res_exp}+ yrs)" if res_exp >= 5 else (f"Mid-Level ({res_exp}+ yrs)" if res_exp >= 3 else f"Foundational ({res_exp} yr)"),
+            "years_of_experience": res_exp,
             "skills": resume_skills if resume_skills else ["Python", "API Services", "Data Processing"],
             "relevant_experience": [p for p in projects[:3]] or ["Engineered backend services and integrated data pipelines"],
             "relevant_projects": [p[:80] for p in projects[:3]] or ["Enterprise API Platform", "Data Processing Service"],
@@ -647,6 +695,8 @@ Return JSON with the following structure:
     "qualifications": ["string"]
   }},
   "candidate": {{
+    "candidate_name": "string",
+    "headline": "string",
     "skills": ["string"],
     "relevant_experience": ["string"],
     "relevant_projects": ["string"],
@@ -695,6 +745,16 @@ RESUME:
             candidate = candidate if isinstance(candidate, dict) else dyn["candidate"]
             result["role"] = role
             result["candidate"] = candidate
+        
+        # Ensure candidate preview fields are always populated
+        if not candidate.get("candidate_name") or candidate.get("candidate_name") == "string":
+            candidate["candidate_name"] = _extract_candidate_name(body.resume)
+        if not candidate.get("headline") or candidate.get("headline") == "string":
+            candidate["headline"] = _extract_candidate_headline(body.resume, role.get("role_title", "Software Professional"))
+        if not candidate.get("seniority"):
+            res_exp_match = re.search(r"(\d+)\+?\s*years?", body.resume, re.I)
+            exp_yrs = int(res_exp_match.group(1)) if res_exp_match else 3
+            candidate["seniority"] = f"Senior ({exp_yrs}+ yrs)" if exp_yrs >= 5 else (f"Mid-Level ({exp_yrs}+ yrs)" if exp_yrs >= 3 else f"Foundational ({exp_yrs} yr)")
         
         # Calculate transparent, defensible job fit score
         total_weight = sum(max(0, float(d.get("weight", 0))) for d in dims)
@@ -998,6 +1058,10 @@ Role Target: {json.dumps(a.get("role"))}'''
         readiness_status = "Not Ready"
         readiness_badge = "🔴 Not Ready"
         
+    cand = a.get("candidate", {})
+    role = a.get("role", {})
+    out["candidate_name"] = cand.get("candidate_name") or "Candidate"
+    out["role_title"] = role.get("role_title") or "Target Role"
     out["overall_score"] = overall_score
     out["job_fit"] = job_fit
     out["readiness_score"] = readiness_score
