@@ -150,9 +150,20 @@ function escapeHtml(str = '') {
 
 // API Helper
 async function api(path, data) {
+  const headers = { 'Content-Type': 'application/json' };
+  const customKey = localStorage.getItem('forma_custom_api_key');
+  if (customKey) {
+    if (customKey.startsWith('AIzaSy')) {
+      headers['X-Gemini-Key'] = customKey;
+    } else if (customKey.startsWith('sk-')) {
+      headers['X-OpenAI-Key'] = customKey;
+    } else {
+      headers['X-Gemini-Key'] = customKey;
+    }
+  }
   const resp = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers,
     body: JSON.stringify(data)
   });
   const json = await resp.json().catch(() => ({}));
@@ -242,6 +253,82 @@ document.addEventListener('DOMContentLoaded', () => {
   // Help Modal
   $('#helpBtn').addEventListener('click', () => $('#helpModal').classList.remove('hidden'));
   $('#closeHelpModal').addEventListener('click', () => $('#helpModal').classList.add('hidden'));
+
+  // Custom API Key Modal & Persistence
+  function updateApiKeyUI() {
+    const key = localStorage.getItem('forma_custom_api_key') || '';
+    const btn = $('#apiKeyModalBtn');
+    const label = $('#apiKeyBtnLabel');
+    if (btn && label) {
+      if (key) {
+        btn.classList.add('active-key');
+        label.textContent = 'API Key (Active)';
+        const provLabel = $('#providerLabel');
+        const provSub = $('#providerSub');
+        if (provLabel) provLabel.textContent = key.startsWith('sk-') ? 'OpenAI Live' : 'Gemini AI Studio (Active)';
+        if (provSub) provSub.textContent = 'Key: ' + key.slice(0, 6) + '...' + key.slice(-4);
+      } else {
+        btn.classList.remove('active-key');
+        label.textContent = 'API Key';
+      }
+    }
+  }
+
+  updateApiKeyUI();
+
+  if ($('#apiKeyModalBtn')) {
+    $('#apiKeyModalBtn').addEventListener('click', () => {
+      const key = localStorage.getItem('forma_custom_api_key') || '';
+      $('#customApiKeyInput').value = key;
+      const notice = $('#apiKeyModalNotice');
+      if (notice) notice.style.display = 'none';
+      $('#apiKeyModal').classList.remove('hidden');
+    });
+  }
+
+  if ($('#closeApiKeyModal')) {
+    $('#closeApiKeyModal').addEventListener('click', () => {
+      $('#apiKeyModal').classList.add('hidden');
+    });
+  }
+
+  if ($('#saveApiKeyBtn')) {
+    $('#saveApiKeyBtn').addEventListener('click', () => {
+      const val = ($('#customApiKeyInput').value || '').trim();
+      if (!val) {
+        localStorage.removeItem('forma_custom_api_key');
+        updateApiKeyUI();
+        $('#apiKeyModal').classList.add('hidden');
+        return;
+      }
+      localStorage.setItem('forma_custom_api_key', val);
+      updateApiKeyUI();
+      const notice = $('#apiKeyModalNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        notice.style.background = 'rgba(16, 185, 129, 0.15)';
+        notice.style.color = '#a7f3d0';
+        notice.textContent = 'Custom key applied! Future calls will use this key.';
+      }
+      setTimeout(() => $('#apiKeyModal').classList.add('hidden'), 800);
+    });
+  }
+
+  if ($('#clearApiKeyBtn')) {
+    $('#clearApiKeyBtn').addEventListener('click', () => {
+      localStorage.removeItem('forma_custom_api_key');
+      $('#customApiKeyInput').value = '';
+      updateApiKeyUI();
+      const notice = $('#apiKeyModalNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        notice.style.background = 'rgba(239, 68, 68, 0.15)';
+        notice.style.color = '#fca5a5';
+        notice.textContent = 'Custom key removed. Built-in engine will be used.';
+      }
+      setTimeout(() => $('#apiKeyModal').classList.add('hidden'), 800);
+    });
+  }
 
   // Quick Presets
   $('#presetAiEng').addEventListener('click', () => loadPreset('aiEng'));

@@ -266,6 +266,34 @@ body {
   gap: 14px;
 }
 
+.btn-api-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--mint-accent);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-api-key:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: var(--emerald-primary);
+  transform: translateY(-1px);
+}
+
+.btn-api-key.active-key {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: var(--emerald-primary);
+  color: #a7f3d0;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
 .system-chip {
   display: flex;
   align-items: center;
